@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-09-19
+
 ### Added
 
 - `AI Rulebook: Enable token-efficient subagent mode` and
