@@ -80,6 +80,16 @@
         "category": "AI Rulebook"
       },
       {
+        "command": "aiRules.enableSubagentMode",
+        "title": "AI Rulebook: Enable token-efficient subagent mode",
+        "category": "AI Rulebook"
+      },
+      {
+        "command": "aiRules.disableSubagentMode",
+        "title": "AI Rulebook: Disable token-efficient subagent mode",
+        "category": "AI Rulebook"
+      },
+      {
         "command": "aiRules.showCoreStatus",
         "title": "AI Rulebook: Show rule pack status",
         "category": "AI Rulebook"
@@ -154,9 +164,19 @@
           "group": "2_workspace@3"
         },
         {
+          "command": "aiRules.enableSubagentMode",
+          "when": "view == aiRules.rulesTree",
+          "group": "3_modes@1"
+        },
+        {
+          "command": "aiRules.disableSubagentMode",
+          "when": "view == aiRules.rulesTree",
+          "group": "3_modes@2"
+        },
+        {
           "command": "aiRules.showCoreStatus",
           "when": "view == aiRules.rulesTree",
-          "group": "3_inspect@1"
+          "group": "4_inspect@1"
         }
       ]
     },

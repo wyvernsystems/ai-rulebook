@@ -59,7 +59,8 @@ npm test
 `verify:bundled` fails if `bundled/manifest.json` no longer lists exactly the
 `.mdc` rules in `bundled/ai-rules/`, if any non-`.mdc` file is present,
 if a rule is missing a `description`, or if it carries an unrenderable
-placeholder. If you added, removed, or edited a rule file, run `npm run sync-bundled` to regenerate the
+placeholder. It also fails when `bundled/subagent-mode/` holds anything but
+`section.md`, or that file carries an unrenderable placeholder. If you added, removed, or edited a rule file, run `npm run sync-bundled` to regenerate the
 manifest and standalone files, then re-run `npm test`. Commit those changes
 before cutting the release.
 
@@ -218,6 +219,8 @@ The current file list from `npx vsce ls` contains:
   extension actually reads from at runtime. `bundled/standalone/` is excluded
   from the VSIX: it exists for the release asset in step 6, not for the
   extension itself.
+- `bundled/subagent-mode/section.md` — the `AGENTS.md` text written by
+  **Enable token-efficient subagent mode**.
 - `out/` — compiled JavaScript. Sources, tests, scripts, and maps are excluded.
 - `icon.png`, `LICENSE`, `README.md`, `CHANGELOG.md`, `package.json`.
 

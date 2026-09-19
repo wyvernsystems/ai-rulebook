@@ -285,7 +285,11 @@ async function writeAgentsMd(workspaceRoot: string, text: string): Promise<void>
 }
 
 /** Composes the whole file from the user's content and a fresh block. */
-function composeFile(existing: string | null, parsed: ParsedAgentsMd | null, block: string): string {
+function composeFile(
+  existing: string | null,
+  parsed: Pick<ParsedAgentsMd, "before" | "after"> | null,
+  block: string
+): string {
   if (parsed) {
     return parsed.before + block + parsed.after;
   }
@@ -421,9 +425,27 @@ export async function setAllRulesEnabledInAgentsMd(
 }
 
 /**
- * Removes the managed block. Deletes the file when nothing but the scaffold
- * this extension wrote would remain; otherwise keeps the user's text intact.
+ * Writes what is left once a block is cut out. Deletes the file when nothing
+ * but the scaffold this extension wrote would remain; otherwise keeps the
+ * user's text intact.
  */
+async function writeRemainderOrDelete(
+  workspaceRoot: string,
+  beforeBlock: string,
+  afterBlock: string
+): Promise<{ removed: true; deletedFile: boolean }> {
+  const before = beforeBlock.trimEnd();
+  const after = afterBlock.replace(/^(\r?\n)+/, "");
+  const remainder = [before, after].filter((part) => part.trim() !== "").join("\n\n");
+  if (remainder.trim() === "" || remainder.trim() === DEFAULT_TITLE) {
+    await fs.rm(agentsMdPath(workspaceRoot), { force: true });
+    return { removed: true, deletedFile: true };
+  }
+  await writeAgentsMd(workspaceRoot, remainder.endsWith("\n") ? remainder : `${remainder}\n`);
+  return { removed: true, deletedFile: false };
+}
+
+/** Removes the managed block; see `writeRemainderOrDelete` for what stays. */
 export async function removeRulesBlockFromAgentsMd(
   workspaceRoot: string
 ): Promise<{ removed: boolean; deletedFile: boolean }> {
@@ -432,15 +454,82 @@ export async function removeRulesBlockFromAgentsMd(
     if (!parsed) {
       return { removed: false, deletedFile: false };
     }
-    const before = parsed.before.trimEnd();
-    const after = parsed.after.replace(/^(\r?\n)+/, "");
-    const remainder = [before, after].filter((part) => part.trim() !== "").join("\n\n");
-    if (remainder.trim() === "" || remainder.trim() === DEFAULT_TITLE) {
-      await fs.rm(agentsMdPath(workspaceRoot), { force: true });
-      return { removed: true, deletedFile: true };
+    return writeRemainderOrDelete(workspaceRoot, parsed.before, parsed.after);
+  });
+}
+
+/**
+ * An opt-in feature's own block, kept outside the rule pack block so the
+ * pack's install, toggles, and removal never touch it (and the reverse). It
+ * shares the pack's mutation queue because both rewrite the same file.
+ */
+export type ExtraBlockMarkers = {
+  /** Whole-line start marker, distinct from `AGENTS_MD_BLOCK_START`. */
+  start: string;
+  end: string;
+  /** Name used in error messages, e.g. `ai-rulebook:subagent-mode`. */
+  label: string;
+};
+
+/**
+ * Locates an extra block. Returns `null` when there is none and throws on a
+ * damaged one, mirroring `parseAgentsMd`.
+ */
+export function findExtraBlock(
+  text: string,
+  markers: ExtraBlockMarkers
+): { before: string; after: string } | null {
+  const lines = text.split("\n");
+  const indexesOf = (marker: string) =>
+    lines.flatMap((line, index) => (line.replace(/\r$/, "") === marker ? [index] : []));
+  const starts = indexesOf(markers.start);
+  const ends = indexesOf(markers.end);
+  if (starts.length === 0 && ends.length === 0) {
+    return null;
+  }
+  if (starts.length !== 1 || ends.length !== 1 || ends[0] < starts[0]) {
+    throw new Error(
+      `${AGENTS_MD} has damaged ${markers.label} markers: expected one "${markers.start}" line followed by one "${markers.end}" line.`
+    );
+  }
+  const before = lines.slice(0, starts[0]).join("\n") + (starts[0] > 0 ? "\n" : "");
+  return { before, after: lines.slice(ends[0] + 1).join("\n") };
+}
+
+export async function hasExtraBlock(
+  workspaceRoot: string,
+  markers: ExtraBlockMarkers
+): Promise<boolean> {
+  const text = await readAgentsMd(workspaceRoot);
+  return text !== null && findExtraBlock(text, markers) !== null;
+}
+
+/** Writes or replaces an extra block; `body` goes between the two markers. */
+export async function writeExtraBlockInAgentsMd(
+  workspaceRoot: string,
+  markers: ExtraBlockMarkers,
+  body: string
+): Promise<{ created: boolean }> {
+  return withWorkspaceMutation(workspaceRoot, async () => {
+    const text = await readAgentsMd(workspaceRoot);
+    const found = text === null ? null : findExtraBlock(text, markers);
+    const block = `${markers.start}\n\n${body.trim()}\n\n${markers.end}\n`;
+    await writeAgentsMd(workspaceRoot, composeFile(text, found, block));
+    return { created: text === null };
+  });
+}
+
+export async function removeExtraBlockFromAgentsMd(
+  workspaceRoot: string,
+  markers: ExtraBlockMarkers
+): Promise<{ removed: boolean; deletedFile: boolean }> {
+  return withWorkspaceMutation(workspaceRoot, async () => {
+    const text = await readAgentsMd(workspaceRoot);
+    const found = text === null ? null : findExtraBlock(text, markers);
+    if (!found) {
+      return { removed: false, deletedFile: false };
     }
-    await writeAgentsMd(workspaceRoot, remainder.endsWith("\n") ? remainder : `${remainder}\n`);
-    return { removed: true, deletedFile: false };
+    return writeRemainderOrDelete(workspaceRoot, found.before, found.after);
   });
 }
 

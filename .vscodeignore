@@ -26,6 +26,7 @@ docs/**
 .github-release-notes-*.md
 bundled/standalone/**
 !bundled/ai-rules/**
+!bundled/subagent-mode/**
 !bundled/manifest.json
 !out/**
 !icon.png

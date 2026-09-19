@@ -85,8 +85,8 @@ The extension does not replace your existing `CLAUDE.md` instructions.
 
 The commands below are available from the command palette
 (`Ctrl/Cmd+Shift+P`) under **AI Rulebook**. The sidebar toolbar provides
-refresh, install, remove, legacy cleanup, status, and whole-pack toggles;
-use its checkboxes or the palette for individual rules.
+refresh, install, remove, legacy cleanup, subagent mode, status, and
+whole-pack toggles; use its checkboxes or the palette for individual rules.
 
 | Command | What it does |
 | --- | --- |
@@ -97,11 +97,13 @@ use its checkboxes or the palette for individual rules.
 | **Disable one rule…** | Picks a rule from a list and empties its section. |
 | **Remove rule pack** | Deletes the managed block from `AGENTS.md` in every open folder after a confirmation. `AGENTS.md` is deleted when empty or only its default title remains; otherwise user text remains. Import cleanup runs only when `AGENTS.md` is deleted. |
 | **Remove legacy per-tool rule folders…** | Deletes the folders earlier releases generated (`.cursor/rules/ai-rules/`, `.clinerules/ai-rules/`, `.opencode/rules/ai-rules/` plus its `/ai-rulebook` command, `.claude/rules/ai-rules/`, `.windsurf/rules/ai-rules/`, `.github/instructions/ai-rules/`) after a confirmation. |
-| **Show rule pack status** | Focuses the sidebar and writes the on / off state to the **AI Rulebook** output channel. |
+| **Enable token-efficient subagent mode** | Off by default. Writes or refreshes the mode's own block in `AGENTS.md` (and the `@AGENTS.md` import in `CLAUDE.md`) in every open folder. It writes no other files. See [Token-efficient subagent mode](#token-efficient-subagent-mode). |
+| **Disable token-efficient subagent mode** | Removes that block from `AGENTS.md` in every open folder. |
+| **Show rule pack status** | Focuses the sidebar and writes the on / off state of each rule and of subagent mode to the **AI Rulebook** output channel. |
 | **Refresh sidebar** | Re-reads `AGENTS.md` and repaints the sidebar and status bar. |
 
-Install, remove, and the legacy-folder cleanup apply to every open workspace
-folder. The sidebar, the status bar, and the rule toggles read and edit the
+Install, remove, the legacy-folder cleanup, and the subagent mode commands
+apply to every open workspace folder. The sidebar, the status bar, and the rule toggles read and edit the
 first workspace folder's `AGENTS.md`.
 
 Selecting a rule's name in the sidebar opens `AGENTS.md` at that rule's
@@ -149,6 +151,54 @@ detects it from a `package.json` `test` script (using the lockfile to pick
 `npm`, `pnpm`, `yarn`, or `bun`), `Cargo.toml`, `go.mod`, pytest
 configuration, or a `test` target in a `Makefile`. When nothing is
 conclusive the rule says "the project's test command" instead of guessing.
+
+## Token-efficient subagent mode
+
+This optional mode tells an agent to spend its expensive session model on
+judgment only (reading the request, planning, writing specs, the final
+report) and to delegate searching, editing, and check runs to subagents on
+cheaper models. It is **off by default** and is not part of the six-rule
+pack: installing, toggling, or removing the pack never touches it, and
+**Enable all rules** does not turn it on.
+
+**Enable token-efficient subagent mode** writes one block into `AGENTS.md`
+in every open folder, between `<!-- ai-rulebook:subagent-mode:start -->` and
+`<!-- ai-rulebook:subagent-mode:end -->`, and makes sure `CLAUDE.md` imports
+`AGENTS.md`. That is all it writes: no `.claude/`, `.codex/`, `.cursor/`, or
+other per-tool folders, and no tool settings. Run it again to refresh the
+wording and the detected test command. **Disable token-efficient subagent
+mode** removes the block, and deletes `AGENTS.md` (and its `CLAUDE.md`
+import) only when nothing else is left in it.
+
+The text is written for any tool that reads `AGENTS.md` and has subagents,
+including Claude Code, ChatGPT / Codex, Cursor, opencode, and GitHub Copilot.
+It relies on the orchestrating model to follow it:
+
+- **Model tiers, not model names.** Work is assigned to a fast, standard, or
+  deep tier, with examples from several vendors, so each tool uses its own
+  models. Tools without subagents are told to skip the section.
+- **Substitutes.** When a tier's model is not offered, blocked by policy,
+  failing, or rate-limited, the agent substitutes in a fixed order: fast
+  falls back to standard and then the session model, standard to the session
+  model, deep to the session model or standard at high effort. It never picks
+  a model more expensive than the session model, tells you once, and keeps
+  the substitute for the rest of the session.
+- **Delegate contracts.** The block states what an implementer, test runner,
+  and reviewer must do and how each replies, so no agent definition files
+  are needed.
+- **No retry loops.** When a delegate's edit is wrong or its check fails,
+  the orchestrator fixes it itself. An incomplete spec is resent once, and
+  the same change never gets a third delegate.
+- **Accuracy checks.** High-risk diffs (concurrency, security, auth,
+  credentials, persistence, migrations) get one read-only review on the
+  strongest model after the checks pass, and the orchestrator reads the
+  final diff itself before reporting.
+
+Because these are instructions rather than configuration, a tool only runs a
+subagent on a cheaper model when its spawn call lets the agent choose one
+(Claude Code's does). Where it does not, delegation still keeps file
+contents and command output out of the session context, which is the larger
+saving.
 
 ## Just want the rules?
 
@@ -273,19 +323,22 @@ ships in the VSIX. Only `.mdc` source files are accepted; `.mdc.disabled`
 files and other non-rule files are rejected. Run `npm run sync-bundled`
 after adding, removing, or editing a rule file to regenerate `bundled/manifest.json` and the standalone
 `bundled/standalone/AGENTS.md` and its README — commit changed generated
-files alongside the rule change. Edit the standalone README template in
+files alongside the rule change. The subagent mode text lives in
+`bundled/subagent-mode/section.md` and is rendered the same way as a rule. Edit the standalone README template in
 `scripts/build-standalone.mjs`, not the generated file.
 
 Source rules hold the `{{TEST_COMMAND}}` token verbatim; the extension
 substitutes the project's real command on the way into `AGENTS.md`. This
 repo's own `AGENTS.md` carries the rendered block as a dogfooded install;
 change a rule in `bundled/ai-rules/`, then re-run the install command to
-regenerate it.
+regenerate it. It also has token-efficient subagent mode enabled; after
+editing `bundled/subagent-mode/section.md`, re-run the enable command.
 
 Requirements are tracked in [docs/REQUIREMENTS.md](./docs/REQUIREMENTS.md).
 Cutting a release is documented in [docs/RELEASING.md](./docs/RELEASING.md).
 The repository's installed rule pack is in [AGENTS.md](./AGENTS.md); it
-contains only the rules generated by a fresh extension install.
+contains only what the extension generates: the rule pack from a fresh
+install and the token-efficient subagent mode block.
 
 ## Limitations
 
@@ -297,6 +350,9 @@ contains only the rules generated by a fresh extension install.
 - File mutations are queued per workspace within one extension host. They
   are not coordinated across editor windows or with external writers; save
   pending edits before using rule commands.
+- Subagent mode is guidance only. It cannot pin a subagent's model, verify
+  that a model is available to your account, or stop an agent from doing the
+  work itself on the session model.
 - Removing a block does not turn off auto-install. To keep it removed on
   later activation, also disable `aiRules.autoInstallOnOpenWorkspace`.
 - The extension manages the rule text itself; it does not verify that code

@@ -52,6 +52,16 @@ describe("VS Code package contributions", () => {
     }
   });
 
+  test("contributes paired subagent mode commands to the palette and the sidebar menu", () => {
+    const commandIds = new Set(contributions.commands.map((command) => command.command));
+    const menuCommands = new Set(contributions.menus["view/title"].map((item) => item.command));
+
+    for (const command of ["aiRules.enableSubagentMode", "aiRules.disableSubagentMode"]) {
+      assert.ok(commandIds.has(command), `missing command: ${command}`);
+      assert.ok(menuCommands.has(command), `missing sidebar menu entry: ${command}`);
+    }
+  });
+
   test("sidebar toolbar menus are not gated by host application", () => {
     for (const item of contributions.menus["view/title"]) {
       const when = item.when ?? "";

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { AGENTS_MD, isRuleEnabledInAgentsMd } from "./agentsMd";
+import { isSubagentModeEnabled } from "./subagentMode";
 
 export function createAiRulesOutputChannel(): vscode.OutputChannel {
   return vscode.window.createOutputChannel("AI Rulebook");
@@ -28,5 +29,9 @@ export async function showRulePackStatusInOutput(
   channel.appendLine("");
   channel.appendLine(
     `active = text present in ${AGENTS_MD}; off = section kept but its text removed.`
+  );
+  channel.appendLine("");
+  channel.appendLine(
+    `token-efficient subagent mode: ${(await isSubagentModeEnabled(workspaceRoot)) ? "on" : "off"}`
   );
 }

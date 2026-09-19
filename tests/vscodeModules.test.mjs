@@ -30,6 +30,7 @@ const sidebarTreeView = await import("../out/sidebarTreeView.js");
 const rulesOperations = await import("../out/rulesOperations.js");
 const agentsMd = await import("../out/agentsMd.js");
 const claudeMd = await import("../out/claudeMd.js");
+const subagentMode = await import("../out/subagentMode.js");
 const extension = await import("../out/extension.js");
 
 Module._load = originalModuleLoad;
@@ -783,6 +784,99 @@ describe("status and reveal commands", () => {
     await state.registeredCommands.get("aiRules.revealRuleFile")("../etc/passwd");
     await state.registeredCommands.get("aiRules.revealRuleFile")("not-bundled.mdc");
     assert.equal(state.openedDocuments.length, 0);
+  });
+});
+
+describe("subagent mode commands", () => {
+  const enableCommand = () => state.registeredCommands.get("aiRules.enableSubagentMode")();
+  const disableCommand = () => state.registeredCommands.get("aiRules.disableSubagentMode")();
+
+  test("installing the rule pack leaves the mode off", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await state.registeredCommands.get("aiRules.installWorkspace")();
+
+    assert.equal(await subagentMode.isSubagentModeEnabled(root), false);
+    await state.registeredCommands.get("aiRules.showCoreStatus")();
+    assert.ok(state.outputChannels[0].lines.includes("token-efficient subagent mode: off"));
+  });
+
+  test("enableSubagentMode writes only AGENTS.md and the CLAUDE.md import, in every open folder", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await writeFile(path.join(roots[1], "package.json"), JSON.stringify({ scripts: { test: "node --test" } }));
+    await activateIn(roots);
+
+    await enableCommand();
+
+    for (const root of roots) {
+      assert.equal(await subagentMode.isSubagentModeEnabled(root), true);
+      assert.equal(await fs.readFile(claudeMd.claudeMdPath(root), "utf8"), "@AGENTS.md\n");
+    }
+    assert.deepEqual((await fs.readdir(roots[0])).sort(), ["AGENTS.md", "CLAUDE.md"]);
+    assert.match(await readAgentsMd(roots[1]), /the default is\s+`npm test`/);
+    assert.deepEqual(state.errors, []);
+    assert.ok(
+      state.informationMessages.some((message) => /subagent mode enabled in AGENTS\.md in 2 folders/.test(message)),
+      state.informationMessages.join()
+    );
+    await state.registeredCommands.get("aiRules.showCoreStatus")();
+    assert.ok(state.outputChannels[0].lines.includes("token-efficient subagent mode: on"));
+  });
+
+  test("disableSubagentMode removes the mode, keeps the rule pack, and cleans up files it created", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn(roots);
+    await state.registeredCommands.get("aiRules.installWorkspace")();
+    await enableCommand();
+    // The second folder holds only the mode, so disabling empties AGENTS.md.
+    await agentsMd.removeRulesBlockFromAgentsMd(roots[1]);
+
+    await disableCommand();
+
+    assert.equal(await subagentMode.isSubagentModeEnabled(roots[0]), false);
+    assert.equal(await agentsMd.hasRulesBlock(roots[0]), true);
+    assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(roots[0])), true);
+    assert.deepEqual(await fs.readdir(roots[1]), [], "AGENTS.md and its CLAUDE.md import go together");
+    assert.ok(state.informationMessages.some((message) => /removed from AGENTS\.md in 2 of 2 folders/.test(message)));
+    assert.equal(state.statusBarItems[0].text, "$(checklist) AI 6/6", "rule toggles are untouched");
+  });
+
+  test("the rule pack's enable-all and remove commands never touch the mode", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+    await state.registeredCommands.get("aiRules.installWorkspace")();
+
+    await state.registeredCommands.get("aiRules.enableCoreWorkspace")();
+    assert.equal(await subagentMode.isSubagentModeEnabled(root), false, "enable all leaves the mode off");
+
+    await enableCommand();
+    state.warningChoice = "Remove rule pack";
+    await state.registeredCommands.get("aiRules.removeWorkspace")();
+    assert.equal(await agentsMd.hasRulesBlock(root), false);
+    assert.equal(await subagentMode.isSubagentModeEnabled(root), true, "removing the pack leaves the mode on");
+  });
+
+  test("disableSubagentMode reports when there was nothing to remove", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await disableCommand();
+
+    assert.ok(state.informationMessages.some((message) => /nothing removed/.test(message)));
+    assert.deepEqual(await fs.readdir(root), []);
+  });
+
+  test("a damaged mode block is reported, not rewritten", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    const damaged = "# Mine\n\n<!-- ai-rulebook:subagent-mode:start -->\n";
+    await writeFile(path.join(root, "AGENTS.md"), damaged);
+    await activateIn([root]);
+
+    await enableCommand();
+
+    assert.ok(state.errors.some((message) => /damaged ai-rulebook:subagent-mode markers/.test(message)));
+    assert.equal(await readAgentsMd(root), damaged);
   });
 });
 

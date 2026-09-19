@@ -3,7 +3,8 @@
  * Checks that the rule pack shipped in the VSIX is internally consistent:
  * `bundled/manifest.json` lists exactly the rules present in
  * `bundled/ai-rules/`, every rule has usable frontmatter, and no rule carries
- * a placeholder the extension cannot render.
+ * a placeholder the extension cannot render. It also checks the section of
+ * token-efficient subagent mode in `bundled/subagent-mode/`.
  *
  * Workspace `AGENTS.md` is a rendered install and is not compared with the
  * source. This script runs independently of compiled extension code.
@@ -19,6 +20,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const bundleDir = path.join(repoRoot, "bundled", "ai-rules");
 const manifestPath = path.join(repoRoot, "bundled", "manifest.json");
+const subagentModeDir = path.join(repoRoot, "bundled", "subagent-mode");
 
 function fail(message) {
   console.error(message);
@@ -100,6 +102,24 @@ for (const rel of ruleFiles) {
   }
 }
 
+/** The opt-in subagent mode ships one section; `{{TEST_COMMAND}}` is its only placeholder. */
+const modeFiles = fs.existsSync(subagentModeDir) ? walkFiles(subagentModeDir) : [];
+if (!modeFiles.includes("section.md")) {
+  problems.push("missing from bundled/subagent-mode: section.md");
+}
+for (const rel of modeFiles) {
+  if (rel !== "section.md") {
+    problems.push(`unexpected file in bundled/subagent-mode: ${rel}`);
+    continue;
+  }
+  const body = fs.readFileSync(path.join(subagentModeDir, rel), "utf8");
+  for (const token of body.match(/\{\{[^}]*\}\}/g) ?? []) {
+    if (!KNOWN_PLACEHOLDERS.has(token)) {
+      problems.push(`unrenderable placeholder ${token} in bundled/subagent-mode/${rel}`);
+    }
+  }
+}
+
 if (problems.length) {
   console.error(
     "bundled rule pack is inconsistent:\n " +
@@ -109,4 +129,6 @@ if (problems.length) {
   process.exit(1);
 }
 
-console.log(`OK: bundled rule pack is consistent (${ruleFiles.length} rules).`);
+console.log(
+  `OK: bundled rule pack is consistent (${ruleFiles.length} rules, subagent mode section).`
+);

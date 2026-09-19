@@ -93,6 +93,35 @@ details belong in the code or in the rule files.
   `.claude/rules/ai-rules/`, `.windsurf/rules/ai-rules/`, and
   `.github/instructions/ai-rules/`. `AGENTS.md` and the opencode config are
   not touched.
+- Token-efficient subagent mode is **off by default** and separate from the
+  rule pack: install, the rule toggles, `Enable all rules`, auto-install, and
+  `Remove rule pack` never write or remove it. It is turned on and off only
+  by `AI Rulebook: Enable token-efficient subagent mode` and
+  `AI Rulebook: Disable token-efficient subagent mode`, which act on every
+  open folder.
+- Enabling the mode writes a second managed block into `AGENTS.md`, delimited
+  by `<!-- ai-rulebook:subagent-mode:start -->` and
+  `<!-- ai-rulebook:subagent-mode:end -->`, outside the rule pack block and
+  through the same per-workspace operation queue. It is rendered from
+  `bundled/subagent-mode/section.md` the way a rule is (headings demoted,
+  `{{TEST_COMMAND}}` replaced) before anything is written. Enabling also
+  ensures the `@AGENTS.md` import in `CLAUDE.md`. Running it again replaces
+  the block in place.
+- The mode writes nothing outside `AGENTS.md` and the `CLAUDE.md` import: no
+  per-tool agent folders and no tool settings. Its text must therefore stand
+  alone: it names model tiers (fast, standard, deep) rather than one
+  vendor's models, tells tools without subagents to skip it, states which
+  tier to substitute when a model is unavailable (never a model more
+  expensive than the session model), and carries each delegate's contract.
+  It also has the orchestrator fix a delegate's failed edit itself, resend a
+  spec at most once, review high-risk diffs once after the checks pass, and
+  read the final diff before reporting.
+- Disabling removes the block, deleting `AGENTS.md` and the `CLAUDE.md`
+  import under the same rules as `Remove rule pack`. Damaged
+  `ai-rulebook:subagent-mode` markers fail enable, disable, and status
+  without rewriting `AGENTS.md`.
+- `Show rule pack status` reports whether the mode is on in the first
+  workspace folder.
 - When a previous extension version is recorded in global state, the
   version changes, a folder is open, and `aiRules.promptInstallOnUpdate` is
   on (default `true`), the extension offers to re-run install. This is not
@@ -105,7 +134,9 @@ details belong in the code or in the rule files.
 - `npm run verify:bundled` must pass before packaging. It checks that
   `bundled/manifest.json` lists exactly the rules in `bundled/ai-rules/`, that
   every rule has a `description` in its frontmatter, and that no rule carries
-  a placeholder the extension cannot render.
+  a placeholder the extension cannot render. It also checks that
+  `bundled/subagent-mode/` holds exactly `section.md` and that it carries
+  only known placeholders.
 - Bundle sync and verification reject any source file that does not end in
   `.mdc`, including the obsolete `.mdc.disabled` format. Disabled state lives
   only in the installed `AGENTS.md` block.
@@ -134,7 +165,7 @@ details belong in the code or in the rule files.
 - **No secret material.** The extension must never read or write credentials,
   tokens, environment variables, or anything outside its allowed paths.
 - The extension only writes inside well-known locations in the open
-  workspace folders: `AGENTS.md` (the managed block only) and `CLAUDE.md`
+  workspace folders: `AGENTS.md` (its managed blocks only) and `CLAUDE.md`
   (the `@AGENTS.md` line only). The legacy cleanup command deletes only the
   six per-tool folders and the opencode command file listed above. Nowhere
   else.
@@ -161,7 +192,8 @@ details belong in the code or in the rule files.
   `.claude/rules/ai-rules`, `.windsurf/rules/ai-rules`, or
   `.github/instructions/ai-rules` respectively.
 - **VSIX contents** are limited to compiled JS (`out/**`), the bundled rule
-  pack (`bundled/ai-rules/**`, `bundled/manifest.json`), `icon.png`
+  pack (`bundled/ai-rules/**`, `bundled/manifest.json`), the subagent mode
+  text (`bundled/subagent-mode/section.md`), `icon.png`
   (≤ 128×128 PNG), `LICENSE`, `README.md`, `CHANGELOG.md`, and
   `package.json`. Repository `AGENTS.md` and `CLAUDE.md`, source, scripts,
   lockfiles, build info, legacy ZIP archives, the high-resolution icon master,
@@ -184,7 +216,8 @@ details belong in the code or in the rule files.
   anything to the cloud.
 - The extension does **not** edit user settings (`settings.json`).
 - The extension does **not** write per-tool rule folders or edit tool
-  config files (opencode config, Claude settings, and so on).
+  config files (opencode config, Claude settings, and so on). That includes
+  token-efficient subagent mode, which lives only in `AGENTS.md`.
 - No file watcher refreshes the UI after external edits. Users can run
   `Refresh sidebar`; file mutations are not locked across extension hosts
   or external processes. Removing the pack does not disable auto-install.

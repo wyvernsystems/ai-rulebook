@@ -26,6 +26,7 @@ import {
   type TestCommand,
 } from "./rulesOperations";
 import { isSafeManifestEntry } from "./safePaths";
+import { disableSubagentMode, enableSubagentMode } from "./subagentMode";
 import { detectTestCommand } from "./testCommand";
 import {
   bindRulesTreeView,
@@ -65,6 +66,7 @@ function folderLabel(root: string): string {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const extensionRoot = context.extensionPath;
   const bundleDir = path.join(extensionRoot, "bundled", "ai-rules");
+  const subagentModeBundleDir = path.join(extensionRoot, "bundled", "subagent-mode");
   let manifest: BundleManifest;
   try {
     manifest = readBundleManifest(extensionRoot);
@@ -303,6 +305,41 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         ].join(", ") +
         "."
     );
+  });
+
+  register("aiRules.enableSubagentMode", async () => {
+    const roots = requireRoots();
+    for (const root of roots) {
+      await enableSubagentMode(root, subagentModeBundleDir, await detectTestCommand(root));
+      await ensureAgentsMdImport(root);
+    }
+    const where = roots.length === 1 ? AGENTS_MD : `${AGENTS_MD} in ${roots.length} folders`;
+    vscode.window.showInformationMessage(
+      `AI Rulebook: token-efficient subagent mode enabled in ${where}.`
+    );
+    await refreshUi();
+  });
+
+  register("aiRules.disableSubagentMode", async () => {
+    const roots = requireRoots();
+    let removedCount = 0;
+    for (const root of roots) {
+      const result = await disableSubagentMode(root);
+      if (result.removed) {
+        removedCount += 1;
+      }
+      if (result.deletedFile) {
+        await removeAgentsMdImport(root);
+      }
+    }
+    vscode.window.showInformationMessage(
+      removedCount === 0
+        ? `AI Rulebook: nothing removed — token-efficient subagent mode is not enabled in ${AGENTS_MD}.`
+        : roots.length === 1
+          ? `AI Rulebook: token-efficient subagent mode removed from ${AGENTS_MD}.`
+          : `AI Rulebook: token-efficient subagent mode removed from ${AGENTS_MD} in ${removedCount} of ${roots.length} folders.`
+    );
+    await refreshUi();
   });
 
   register("aiRules.showCoreStatus", async () => {

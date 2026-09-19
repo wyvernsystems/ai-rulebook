@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `AI Rulebook: Enable token-efficient subagent mode` and
+  `AI Rulebook: Disable token-efficient subagent mode`. The mode is off until
+  you enable it. Enabling adds a separate managed block to `AGENTS.md` in
+  every open folder that tells agents to keep the session model for judgment
+  and delegate searching, editing, and check runs to subagents on cheaper
+  models. The text names model tiers (fast, standard, deep) instead of one
+  vendor's models, says which tier to substitute when a model is unavailable,
+  and carries each delegate's contract, so it works in any tool that reads
+  `AGENTS.md` and has subagents. It writes no per-tool folders or settings.
+  The rule pack commands never turn it on or remove it.
+- `Show rule pack status` reports whether the mode is on.
+
 ## [4.2.0] - 2026-09-09
 
 ### Changed
