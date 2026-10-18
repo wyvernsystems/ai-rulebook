@@ -52,14 +52,39 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("contributes paired subagent mode commands to the palette and the sidebar menu", () => {
+  test("contributes paired subagent mode commands to the palette only", () => {
     const commandIds = new Set(contributions.commands.map((command) => command.command));
     const menuCommands = new Set(contributions.menus["view/title"].map((item) => item.command));
 
     for (const command of ["aiRules.enableSubagentMode", "aiRules.disableSubagentMode"]) {
       assert.ok(commandIds.has(command), `missing command: ${command}`);
-      assert.ok(menuCommands.has(command), `missing sidebar menu entry: ${command}`);
+      assert.ok(!menuCommands.has(command), `unexpected sidebar menu entry: ${command}`);
     }
+  });
+
+  test("contributes paired parallel mode commands to the palette only", () => {
+    const commandIds = new Set(contributions.commands.map((command) => command.command));
+    const menuCommands = new Set(contributions.menus["view/title"].map((item) => item.command));
+
+    for (const command of ["aiRules.enableParallelMode", "aiRules.disableParallelMode"]) {
+      assert.ok(commandIds.has(command), `missing command: ${command}`);
+      assert.ok(!menuCommands.has(command), `unexpected sidebar menu entry: ${command}`);
+    }
+  });
+
+  test("contributes the select agent mode command to the palette and the sidebar menu", () => {
+    const command = contributions.commands.find(
+      (item) => item.command === "aiRules.selectAgentMode"
+    );
+    assert.ok(command, "missing command: aiRules.selectAgentMode");
+    assert.equal(command.title, "AI Rulebook: Select agent mode…");
+
+    const menuItem = contributions.menus["view/title"].find(
+      (item) => item.command === "aiRules.selectAgentMode"
+    );
+    assert.ok(menuItem, "missing sidebar menu entry: aiRules.selectAgentMode");
+    assert.equal(menuItem.when, "view == aiRules.rulesTree");
+    assert.equal(menuItem.group, "3_modes@1");
   });
 
   test("sidebar toolbar menus are not gated by host application", () => {

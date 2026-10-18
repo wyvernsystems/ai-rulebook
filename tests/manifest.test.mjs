@@ -14,6 +14,7 @@ const RULE_FILES = [
   "docs.mdc",
   "git.mdc",
   "markdown.mdc",
+  "review.mdc",
   "scope.mdc",
   "tests.mdc",
 ];
@@ -68,6 +69,18 @@ describe("readBundleManifest (shipped pack)", () => {
         );
       }
     }
+  });
+
+  test("review.mdc applies only on request, keeps licensing report-only, and never force-pushes", async () => {
+    const rule = await fs.readFile(
+      path.join(repoRoot, "bundled", "ai-rules", "review.mdc"),
+      "utf8"
+    );
+    assert.match(rule, /only when the user explicitly asks/);
+    assert.match(rule, /Licensing: report, don't fix/);
+    const lastBullet = rule.trimEnd().split("\n").at(-1);
+    assert.match(lastBullet, /commit and push/);
+    assert.match(lastBullet, /never force-push/);
   });
 
   test("ships no placeholder that install-time rendering does not resolve", async () => {

@@ -31,6 +31,8 @@ const rulesOperations = await import("../out/rulesOperations.js");
 const agentsMd = await import("../out/agentsMd.js");
 const claudeMd = await import("../out/claudeMd.js");
 const subagentMode = await import("../out/subagentMode.js");
+const parallelMode = await import("../out/parallelMode.js");
+const agentModes = await import("../out/agentModes.js");
 const extension = await import("../out/extension.js");
 
 Module._load = originalModuleLoad;
@@ -42,6 +44,7 @@ const RULE_FILES = [
   "docs.mdc",
   "git.mdc",
   "markdown.mdc",
+  "review.mdc",
   "scope.mdc",
   "tests.mdc",
 ];
@@ -167,7 +170,7 @@ describe("RulesTreeProvider", () => {
     const rules = await provider.getChildren();
     assert.deepEqual(
       rules,
-      RULE_FILES.map((ruleFile) => ({ kind: "rule", ruleFile }))
+      [...RULE_FILES.map((ruleFile) => ({ kind: "rule", ruleFile })), { kind: "mode" }]
     );
     assert.deepEqual(await provider.getChildren(rules[0]), []);
   });
@@ -408,7 +411,7 @@ describe("extension activation", () => {
     assert.equal(await rulesOperations.pathExists(path.join(root, ".cursor")), false);
     assert.ok(state.informationMessages.some((message) => /AGENTS\.md/.test(message)));
     assert.ok(state.outputChannels[0].lines.some((line) => line === `active\t${SAMPLE_RULE}`));
-    assert.match(state.statusBarItems[0].text, /AI 6\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 7\/7/);
   });
 
   test("activate installs on a Cursor host even without agent files", async (t) => {
@@ -481,7 +484,7 @@ describe("extension activation", () => {
     await extension.activate(context);
 
     assert.equal(await readAgentsMd(root), before);
-    assert.match(state.statusBarItems[0].text, /AI 5\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 6\/7/);
     assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(root)), false);
   });
 
@@ -536,7 +539,7 @@ describe("install command", () => {
       state.informationMessages.some((message) => /2 folders/.test(message)),
       state.informationMessages.join(" | ")
     );
-    assert.match(state.statusBarItems[0].text, /AI 6\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 7\/7/);
   });
 
   test("installWorkspace keeps a disabled rule disabled while refreshing the text", async (t) => {
@@ -566,14 +569,14 @@ describe("rule toggle commands", () => {
       assert.equal(await agentsMd.isRuleEnabledInAgentsMd(root, ruleFile), false, ruleFile);
     }
     assert.ok(!(await readAgentsMd(root)).includes("## Scope"));
-    assert.match(state.statusBarItems[0].text, /AI 0\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 0\/7/);
 
     await state.registeredCommands.get("aiRules.enableCoreWorkspace")();
     for (const ruleFile of RULE_FILES) {
       assert.equal(await agentsMd.isRuleEnabledInAgentsMd(root, ruleFile), true, ruleFile);
     }
     assert.ok((await readAgentsMd(root)).includes("## Scope"));
-    assert.match(state.statusBarItems[0].text, /AI 6\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 7\/7/);
   });
 
   test("individual commands change only the selected topic rule", async (t) => {
@@ -619,7 +622,7 @@ describe("rule toggle commands", () => {
 
     assert.equal(await agentsMd.isRuleEnabledInAgentsMd(root, "tests.mdc"), false);
     assert.ok(!(await readAgentsMd(root)).includes("## Tests"));
-    assert.match(state.statusBarItems[0].text, /AI 5\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 6\/7/);
     assert.deepEqual(state.errors, []);
   });
 });
@@ -708,7 +711,7 @@ describe("remove commands", () => {
       "the import stays while AGENTS.md still exists"
     );
     assert.ok(state.informationMessages.some((message) => /removed/i.test(message)));
-    assert.equal(state.statusBarItems[0].text, "$(checklist) AI 0/6");
+    assert.equal(state.statusBarItems[0].text, "$(checklist) AI 0/7");
   });
 
   test("removeLegacyFoldersWorkspace deletes the per-tool folders from every folder", async (t) => {
@@ -839,7 +842,7 @@ describe("subagent mode commands", () => {
     assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(roots[0])), true);
     assert.deepEqual(await fs.readdir(roots[1]), [], "AGENTS.md and its CLAUDE.md import go together");
     assert.ok(state.informationMessages.some((message) => /removed from AGENTS\.md in 2 of 2 folders/.test(message)));
-    assert.equal(state.statusBarItems[0].text, "$(checklist) AI 6/6", "rule toggles are untouched");
+    assert.equal(state.statusBarItems[0].text, "$(checklist) AI 7/7", "rule toggles are untouched");
   });
 
   test("the rule pack's enable-all and remove commands never touch the mode", async (t) => {
@@ -877,6 +880,126 @@ describe("subagent mode commands", () => {
 
     assert.ok(state.errors.some((message) => /damaged ai-rulebook:subagent-mode markers/.test(message)));
     assert.equal(await readAgentsMd(root), damaged);
+  });
+});
+
+describe("fast parallel agent mode commands", () => {
+  const enableCommand = () => state.registeredCommands.get("aiRules.enableParallelMode")();
+  const disableCommand = () => state.registeredCommands.get("aiRules.disableParallelMode")();
+  const enableSubagentCommand = () => state.registeredCommands.get("aiRules.enableSubagentMode")();
+  const enableSubagentIn = (root) =>
+    subagentMode.enableSubagentMode(root, path.join(repoRoot, "bundled", "subagent-mode"), null);
+
+  test("the mode is off until enabled and status reports both modes", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await state.registeredCommands.get("aiRules.installWorkspace")();
+
+    assert.equal(await parallelMode.isParallelModeEnabled(root), false);
+    await state.registeredCommands.get("aiRules.showCoreStatus")();
+    const lines = state.outputChannels[0].lines;
+    assert.ok(lines.includes("fast parallel agent mode: off"));
+    assert.ok(lines.includes("token-efficient subagent mode: off"));
+  });
+
+  test("enableParallelMode writes only AGENTS.md and the CLAUDE.md import, in every open folder", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn(roots);
+
+    await enableCommand();
+
+    for (const root of roots) {
+      assert.equal(await parallelMode.isParallelModeEnabled(root), true);
+      assert.equal(await subagentMode.isSubagentModeEnabled(root), false);
+      assert.equal(await fs.readFile(claudeMd.claudeMdPath(root), "utf8"), "@AGENTS.md\n");
+      assert.deepEqual((await fs.readdir(root)).sort(), ["AGENTS.md", "CLAUDE.md"]);
+    }
+    assert.deepEqual(state.errors, []);
+    assert.ok(
+      state.informationMessages.some((message) => /fast parallel agent mode enabled in AGENTS\.md in 2 folders/.test(message)),
+      state.informationMessages.join()
+    );
+    await state.registeredCommands.get("aiRules.showCoreStatus")();
+    const lines = state.outputChannels[0].lines;
+    assert.ok(lines.includes("fast parallel agent mode: on"));
+    assert.ok(lines.includes("token-efficient subagent mode: off"));
+  });
+
+  test("disableParallelMode removes the mode, keeps the rule pack, and cleans up files it created", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn(roots);
+    await state.registeredCommands.get("aiRules.installWorkspace")();
+    await enableCommand();
+    // The second folder holds only the mode, so disabling empties AGENTS.md.
+    await agentsMd.removeRulesBlockFromAgentsMd(roots[1]);
+
+    await disableCommand();
+
+    assert.equal(await parallelMode.isParallelModeEnabled(roots[0]), false);
+    assert.equal(await agentsMd.hasRulesBlock(roots[0]), true);
+    assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(roots[0])), true);
+    assert.deepEqual(await fs.readdir(roots[1]), [], "AGENTS.md and its CLAUDE.md import go together");
+    assert.ok(
+      state.informationMessages.some((message) => /fast parallel agent mode removed from AGENTS\.md in 2 of 2 folders/.test(message)),
+      state.informationMessages.join()
+    );
+    assert.equal(state.statusBarItems[0].text, "$(checklist) AI 7/7", "rule toggles are untouched");
+  });
+
+  test("disableParallelMode reports when there was nothing to remove", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await disableCommand();
+
+    assert.ok(state.informationMessages.some((message) => /nothing removed/.test(message)));
+    assert.deepEqual(await fs.readdir(root), []);
+  });
+
+  test("enableParallelMode refuses while subagent mode is on in any folder and writes nothing", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await enableSubagentIn(roots[1]);
+    const before = await readAgentsMd(roots[1]);
+    await activateIn(roots);
+
+    await enableCommand();
+
+    assert.ok(
+      state.errors.some((message) =>
+        /fast parallel agent mode can't be enabled while token-efficient subagent mode is on/.test(message)
+      ),
+      state.errors.join()
+    );
+    assert.equal(await rulesOperations.pathExists(agentsMd.agentsMdPath(roots[0])), false);
+    assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(roots[0])), false);
+    assert.equal(await readAgentsMd(roots[1]), before);
+    for (const root of roots) {
+      assert.equal(await parallelMode.isParallelModeEnabled(root), false);
+    }
+    assert.equal(await subagentMode.isSubagentModeEnabled(roots[1]), true);
+    assert.deepEqual(state.informationMessages.filter((message) => /enabled in/.test(message)), []);
+  });
+
+  test("enableSubagentMode refuses while parallel mode is on and leaves subagent mode off", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn(roots);
+    await enableCommand();
+    const before = await Promise.all(roots.map((root) => readAgentsMd(root)));
+
+    await enableSubagentCommand();
+
+    assert.ok(
+      state.errors.some((message) =>
+        /token-efficient subagent mode can't be enabled while fast parallel agent mode is on/.test(message)
+      ),
+      state.errors.join()
+    );
+    for (const [index, root] of roots.entries()) {
+      assert.equal(await subagentMode.isSubagentModeEnabled(root), false);
+      assert.equal(await parallelMode.isParallelModeEnabled(root), true);
+      assert.equal(await readAgentsMd(root), before[index]);
+    }
   });
 });
 
@@ -953,7 +1076,7 @@ describe("command and UI edge cases", () => {
     await activateIn([root]);
     await agentsMd.setRuleEnabledInAgentsMd(root, bundleDir, SAMPLE_RULE, false, null);
     await state.registeredCommands.get("aiRules.refreshTree")();
-    assert.match(state.statusBarItems[0].text, /AI 5\/6/);
+    assert.match(state.statusBarItems[0].text, /AI 6\/7/);
     await fs.unlink(agentsMd.agentsMdPath(root));
     await fs.mkdir(agentsMd.agentsMdPath(root));
     await state.registeredCommands.get("aiRules.refreshTree")();
@@ -1001,5 +1124,214 @@ describe("command and UI edge cases", () => {
     await extension.activate(context);
     assert.deepEqual(state.informationMessages, []);
     assert.equal(values.get("aiRules.lastSeenExtensionVersion"), "1.4.0");
+  });
+});
+
+describe("select agent mode command", () => {
+  const select = (id) => state.registeredCommands.get("aiRules.selectAgentMode")(id);
+  const enableSubagent = () => state.registeredCommands.get("aiRules.enableSubagentMode")();
+  const BOTH_BLOCKS = [
+    "# Mine",
+    "",
+    agentModes.SUBAGENT_MODE.markers.start,
+    "subagent text",
+    agentModes.SUBAGENT_MODE.markers.end,
+    "",
+    agentModes.PARALLEL_MODE.markers.start,
+    "parallel text",
+    agentModes.PARALLEL_MODE.markers.end,
+    "",
+  ].join("\n");
+
+  test("picking another mode switches in one step across folders and marks the current one", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn(roots);
+    await enableSubagent();
+    state.quickPickSelection = { id: "parallel" };
+
+    await select();
+
+    const items = state.quickPickRequests[0].items;
+    assert.deepEqual(
+      items.map((item) => [item.id, item.description]),
+      [
+        ["off", undefined],
+        ["subagent", "current"],
+        ["parallel", undefined],
+      ]
+    );
+    for (const root of roots) {
+      assert.equal(await subagentMode.isSubagentModeEnabled(root), false);
+      assert.equal(await parallelMode.isParallelModeEnabled(root), true);
+      const text = await readAgentsMd(root);
+      assert.ok(!text.includes(agentModes.SUBAGENT_MODE.markers.start));
+      assert.ok(text.includes(agentModes.PARALLEL_MODE.markers.start));
+    }
+    assert.deepEqual(state.errors, []);
+    assert.ok(
+      state.informationMessages.some((message) =>
+        /agent mode set to fast parallel agent mode in AGENTS\.md in 2 folders/.test(message)
+      ),
+      state.informationMessages.join()
+    );
+  });
+
+  test("cancelling the picker writes nothing", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+    state.quickPickSelection = undefined;
+
+    await select();
+
+    assert.equal(state.quickPickRequests.length, 1);
+    assert.deepEqual(await fs.readdir(root), []);
+    assert.deepEqual(state.errors, []);
+    assert.deepEqual(state.informationMessages.filter((message) => /agent mode/.test(message)), []);
+  });
+
+  test("off removes the mode and deletes the files it created", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+    await enableSubagent();
+
+    await select("off");
+
+    assert.deepEqual(await fs.readdir(root), []);
+    assert.ok(
+      state.informationMessages.some((message) => /agent modes turned off in AGENTS\.md/.test(message)),
+      state.informationMessages.join()
+    );
+  });
+
+  test("off reports when no agent mode was on", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await select("off");
+
+    assert.ok(
+      state.informationMessages.some((message) => /no agent mode was on in AGENTS\.md/.test(message)),
+      state.informationMessages.join()
+    );
+    assert.deepEqual(await fs.readdir(root), []);
+  });
+
+  test("an unknown mode id is an error", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await select("bogus");
+
+    assert.ok(state.errors.some((message) => /Unknown agent mode "bogus"\./.test(message)), state.errors.join());
+    assert.deepEqual(await fs.readdir(root), []);
+  });
+
+  test("damaged markers in a later folder abort before any write", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    const damaged = `# Mine\n\n${agentModes.PARALLEL_MODE.markers.start}\n`;
+    await writeFile(path.join(roots[1], "AGENTS.md"), damaged);
+    await activateIn(roots);
+
+    await select("subagent");
+
+    assert.ok(state.errors.some((message) => /damaged ai-rulebook:parallel-mode markers/.test(message)), state.errors.join());
+    assert.deepEqual(await fs.readdir(roots[0]), []);
+    assert.equal(await readAgentsMd(roots[1]), damaged);
+  });
+
+  test("both blocks present show a conflict everywhere and selecting a mode keeps one", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await writeFile(agentsMd.agentsMdPath(root), BOTH_BLOCKS);
+    await activateIn([root]);
+
+    const bar = state.statusBarItems[0];
+    assert.ok(bar.text.includes("$(warning)") && bar.text.includes("2 modes"), bar.text);
+    assert.match(String(bar.tooltip), /are both on/);
+
+    await state.registeredCommands.get("aiRules.showCoreStatus")();
+    assert.ok(state.outputChannels[0].lines.some((line) => /^warning: .* are both on/.test(line)));
+
+    const provider = new sidebarTreeView.RulesTreeProvider(RULE_FILES);
+    const item = await provider.getTreeItem({ kind: "mode" });
+    assert.equal(item.description, "Conflict: more than one on");
+
+    await select("parallel");
+
+    const text = await readAgentsMd(root);
+    assert.ok(!text.includes(agentModes.SUBAGENT_MODE.markers.start));
+    assert.ok(text.includes(agentModes.PARALLEL_MODE.markers.start));
+    assert.ok(text.includes("# Mine"));
+    assert.ok(!bar.text.includes("modes"), bar.text);
+  });
+
+  test("the status bar names the mode that is on", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+
+    await state.registeredCommands.get("aiRules.enableParallelMode")();
+
+    const bar = state.statusBarItems[0];
+    assert.ok(bar.text.endsWith("· parallel"), bar.text);
+    assert.match(String(bar.tooltip), /Agent mode: fast parallel agent mode\./);
+  });
+
+  test("the sidebar mode row shows the mode and opens the picker", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+    const provider = new sidebarTreeView.RulesTreeProvider(RULE_FILES);
+
+    const off = await provider.getTreeItem({ kind: "mode" });
+    assert.equal(off.description, "Off");
+    assert.equal(off.command.command, "aiRules.selectAgentMode");
+
+    await state.registeredCommands.get("aiRules.enableParallelMode")();
+
+    const on = await provider.getTreeItem({ kind: "mode" });
+    assert.equal(on.description, agentModes.PARALLEL_MODE.label);
+  });
+});
+
+describe("AGENTS.md file watching", () => {
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  test("activation watches AGENTS.md in every folder", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn(roots);
+
+    assert.equal(state.fileWatchers.length, 2);
+    for (const [index, watcher] of state.fileWatchers.entries()) {
+      assert.equal(watcher.globPattern.pattern, "AGENTS.md");
+      assert.equal(watcher.globPattern.base.uri.fsPath, roots[index]);
+    }
+  });
+
+  test("a hand edit of AGENTS.md refreshes the status bar after the debounce", async (t) => {
+    const [root] = await tempWorkspaces(t, 1);
+    await activateIn([root]);
+    const bar = state.statusBarItems[0];
+    assert.ok(!bar.text.includes("parallel"), bar.text);
+
+    await writeFile(
+      agentsMd.agentsMdPath(root),
+      `${agentModes.PARALLEL_MODE.markers.start}\nx\n${agentModes.PARALLEL_MODE.markers.end}\n`
+    );
+    state.fileWatchers[0].changed.fire();
+    await sleep(400);
+
+    assert.ok(bar.text.endsWith("· parallel"), bar.text);
+  });
+
+  test("a workspace folder change replaces the watchers", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    await activateIn([roots[0]]);
+    assert.equal(state.fileWatchers.length, 1);
+    const old = state.fileWatchers[0];
+    workspace.workspaceFolders = roots.map((root) => ({ uri: Uri.file(root) }));
+
+    state.workspaceFolderListeners[0]({});
+
+    assert.equal(old.disposed, true);
+    assert.equal(state.fileWatchers.length, 3);
+    assert.deepEqual(state.fileWatchers.slice(1).map((watcher) => watcher.disposed), [false, false]);
   });
 });

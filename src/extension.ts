@@ -26,7 +26,19 @@ import {
   type TestCommand,
 } from "./rulesOperations";
 import { isSafeManifestEntry } from "./safePaths";
-import { disableSubagentMode, enableSubagentMode } from "./subagentMode";
+import {
+  activeAgentModes,
+  AGENT_MODES,
+  agentModeConflictMessage,
+  conflictingAgentMode,
+  disableAgentMode,
+  enableAgentMode,
+  PARALLEL_MODE,
+  SELECT_AGENT_MODE_COMMAND_TITLE,
+  SUBAGENT_MODE,
+  switchAgentMode,
+  type AgentMode,
+} from "./agentModes";
 import { detectTestCommand } from "./testCommand";
 import {
   bindRulesTreeView,
@@ -39,6 +51,8 @@ const LAST_SEEN_VERSION_KEY = "aiRules.lastSeenExtensionVersion";
 const AUTO_INSTALL_SKIPPED_NOTICE_KEY = "aiRules.autoInstallSkippedNoticeShown";
 const INSTALL_COMMAND_TITLE = "AI Rulebook: Install / update rule pack";
 const NOT_INSTALLED_HINT = `no rule pack in ${AGENTS_MD} yet — run "${INSTALL_COMMAND_TITLE}" first.`;
+/** Debounce for refreshing the UI after `AGENTS.md` changes on disk. */
+const AGENTS_MD_REFRESH_DELAY_MS = 200;
 
 function getAiRulesBoolean(key: string, defaultValue: boolean): boolean {
   const v = vscode.workspace.getConfiguration("aiRules").get(key);
@@ -66,7 +80,6 @@ function folderLabel(root: string): string {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const extensionRoot = context.extensionPath;
   const bundleDir = path.join(extensionRoot, "bundled", "ai-rules");
-  const subagentModeBundleDir = path.join(extensionRoot, "bundled", "subagent-mode");
   let manifest: BundleManifest;
   try {
     manifest = readBundleManifest(extensionRoot);
@@ -130,18 +143,29 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       return;
     }
     let enabledCount: number | null;
+    let modes: AgentMode[];
     try {
       enabledCount = await countEnabledRules(root);
+      modes = await activeAgentModes(root);
     } catch (e) {
       statusBarItem.text = "$(warning) AI Rulebook";
       statusBarItem.tooltip = `AI Rulebook: ${errorMessage(e)}`;
       return;
     }
-    statusBarItem.text = `$(checklist) AI ${enabledCount ?? 0}/${mdcs.length}`;
-    statusBarItem.tooltip =
+    const rules = `AI ${enabledCount ?? 0}/${mdcs.length}`;
+    statusBarItem.text =
+      modes.length > 1
+        ? `$(warning) ${rules} · ${modes.length} modes`
+        : `$(checklist) ${rules}${modes.length === 1 ? ` · ${modes[0].id}` : ""}`;
+    const ruleSummary =
       enabledCount === null
-        ? `AI Rulebook: rule pack not installed in ${AGENTS_MD}. Click for status.`
-        : `AI Rulebook: ${enabledCount} of ${mdcs.length} rules enabled in ${AGENTS_MD}. Click for status.`;
+        ? `rule pack not installed in ${AGENTS_MD}.`
+        : `${enabledCount} of ${mdcs.length} rules enabled in ${AGENTS_MD}.`;
+    const modeSummary =
+      modes.length > 1
+        ? `${modes.map((mode) => mode.name).join(" and ")} are both on, so agents get conflicting instructions. Run "${SELECT_AGENT_MODE_COMMAND_TITLE}" to keep one.`
+        : `Agent mode: ${modes.length === 1 ? modes[0].name : "off"}.`;
+    statusBarItem.tooltip = `AI Rulebook: ${ruleSummary} ${modeSummary} Click for status.`;
   };
 
   const refreshUi = async (): Promise<void> => {
@@ -307,37 +331,126 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     );
   });
 
-  register("aiRules.enableSubagentMode", async () => {
-    const roots = requireRoots();
-    for (const root of roots) {
-      await enableSubagentMode(root, subagentModeBundleDir, await detectTestCommand(root));
-      await ensureAgentsMdImport(root);
-    }
-    const where = roots.length === 1 ? AGENTS_MD : `${AGENTS_MD} in ${roots.length} folders`;
-    vscode.window.showInformationMessage(
-      `AI Rulebook: token-efficient subagent mode enabled in ${where}.`
-    );
-    await refreshUi();
-  });
+  const agentModeBundleDir = (mode: AgentMode): string =>
+    path.join(extensionRoot, "bundled", mode.bundleFolder);
 
-  register("aiRules.disableSubagentMode", async () => {
-    const roots = requireRoots();
-    let removedCount = 0;
-    for (const root of roots) {
-      const result = await disableSubagentMode(root);
-      if (result.removed) {
-        removedCount += 1;
+  const registerAgentModeCommands = (mode: AgentMode, enableId: string, disableId: string): void => {
+    const modeBundleDir = agentModeBundleDir(mode);
+
+    register(enableId, async () => {
+      const roots = requireRoots();
+      // Check every folder first so a conflict in one writes nothing anywhere.
+      for (const root of roots) {
+        const other = await conflictingAgentMode(root, mode);
+        if (other) {
+          const where = roots.length === 1 ? "" : ` (in ${folderLabel(root)})`;
+          throw new Error(`${agentModeConflictMessage(mode, other)}${where}`);
+        }
       }
-      if (result.deletedFile) {
+      for (const root of roots) {
+        await enableAgentMode(root, mode, modeBundleDir, await detectTestCommand(root));
+        await ensureAgentsMdImport(root);
+      }
+      const where = roots.length === 1 ? AGENTS_MD : `${AGENTS_MD} in ${roots.length} folders`;
+      vscode.window.showInformationMessage(`AI Rulebook: ${mode.name} enabled in ${where}.`);
+      await refreshUi();
+    });
+
+    register(disableId, async () => {
+      const roots = requireRoots();
+      let removedCount = 0;
+      for (const root of roots) {
+        const result = await disableAgentMode(root, mode);
+        if (result.removed) {
+          removedCount += 1;
+        }
+        if (result.deletedFile) {
+          await removeAgentsMdImport(root);
+        }
+      }
+      vscode.window.showInformationMessage(
+        removedCount === 0
+          ? `AI Rulebook: nothing removed — ${mode.name} is not enabled in ${AGENTS_MD}.`
+          : roots.length === 1
+            ? `AI Rulebook: ${mode.name} removed from ${AGENTS_MD}.`
+            : `AI Rulebook: ${mode.name} removed from ${AGENTS_MD} in ${removedCount} of ${roots.length} folders.`
+      );
+      await refreshUi();
+    });
+  };
+
+  registerAgentModeCommands(SUBAGENT_MODE, "aiRules.enableSubagentMode", "aiRules.disableSubagentMode");
+  registerAgentModeCommands(PARALLEL_MODE, "aiRules.enableParallelMode", "aiRules.disableParallelMode");
+
+  /**
+   * Switches every open folder to one agent mode, or turns modes off. Takes an
+   * optional mode id ("off", "subagent", "parallel"); without one it asks
+   * with a quick pick that marks the first folder's current mode.
+   */
+  register("aiRules.selectAgentMode", async (requested?: unknown) => {
+    const roots = requireRoots();
+    // Read every folder first so damaged markers anywhere stop the switch before any write.
+    const current: AgentMode[][] = [];
+    for (const root of roots) {
+      current.push(await activeAgentModes(root));
+    }
+    let targetId: string;
+    if (typeof requested === "string") {
+      targetId = requested;
+    } else {
+      const first = current[0];
+      const items: Array<vscode.QuickPickItem & { id: string }> = [
+        {
+          id: "off",
+          label: "Off",
+          description: first.length === 0 ? "current" : undefined,
+          detail: `No agent mode block in ${AGENTS_MD}`,
+        },
+        ...AGENT_MODES.map((mode) => ({
+          id: mode.id,
+          label: mode.label,
+          description: first.includes(mode)
+            ? first.length > 1
+              ? "current (conflicting)"
+              : "current"
+            : undefined,
+          detail: mode.summary,
+        })),
+      ];
+      const pick = await vscode.window.showQuickPick(items, {
+        title: "AI Rulebook: agent mode",
+        placeHolder: `Choose the agent mode written into ${AGENTS_MD}`,
+      });
+      if (!pick) {
+        return;
+      }
+      targetId = pick.id;
+    }
+    const target = targetId === "off" ? null : AGENT_MODES.find((mode) => mode.id === targetId);
+    if (target === undefined) {
+      throw new Error(`Unknown agent mode "${targetId}".`);
+    }
+    for (const root of roots) {
+      const result = await switchAgentMode(
+        root,
+        target
+          ? { mode: target, bundleDir: agentModeBundleDir(target), testCommand: await detectTestCommand(root) }
+          : null
+      );
+      if (target) {
+        await ensureAgentsMdImport(root);
+      } else if (result.deletedFile) {
         await removeAgentsMdImport(root);
       }
     }
+    const where = roots.length === 1 ? AGENTS_MD : `${AGENTS_MD} in ${roots.length} folders`;
+    const wasOn = current.some((modes) => modes.length > 0);
     vscode.window.showInformationMessage(
-      removedCount === 0
-        ? `AI Rulebook: nothing removed — token-efficient subagent mode is not enabled in ${AGENTS_MD}.`
-        : roots.length === 1
-          ? `AI Rulebook: token-efficient subagent mode removed from ${AGENTS_MD}.`
-          : `AI Rulebook: token-efficient subagent mode removed from ${AGENTS_MD} in ${removedCount} of ${roots.length} folders.`
+      target
+        ? `AI Rulebook: agent mode set to ${target.name} in ${where}.`
+        : wasOn
+          ? `AI Rulebook: agent modes turned off in ${where}.`
+          : `AI Rulebook: no agent mode was on in ${where}.`
     );
     await refreshUi();
   });
@@ -432,6 +545,54 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       );
     }
   };
+
+  /**
+   * Refreshes the sidebar and status bar when `AGENTS.md` changes outside the
+   * extension (a pull, a branch switch, a hand edit). Events are debounced;
+   * the extension's own writes trigger a harmless extra refresh.
+   */
+  let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+  const scheduleRefresh = (): void => {
+    if (refreshTimer !== undefined) {
+      clearTimeout(refreshTimer);
+    }
+    refreshTimer = setTimeout(() => {
+      refreshTimer = undefined;
+      void refreshUi();
+    }, AGENTS_MD_REFRESH_DELAY_MS);
+  };
+  let agentsMdWatchers: vscode.FileSystemWatcher[] = [];
+  const watchAgentsMd = (): void => {
+    for (const watcher of agentsMdWatchers) {
+      watcher.dispose();
+    }
+    agentsMdWatchers = (vscode.workspace.workspaceFolders ?? []).map((folder) => {
+      const watcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(folder, AGENTS_MD)
+      );
+      watcher.onDidCreate(scheduleRefresh);
+      watcher.onDidChange(scheduleRefresh);
+      watcher.onDidDelete(scheduleRefresh);
+      return watcher;
+    });
+  };
+  watchAgentsMd();
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      watchAgentsMd();
+      scheduleRefresh();
+    }),
+    {
+      dispose: () => {
+        if (refreshTimer !== undefined) {
+          clearTimeout(refreshTimer);
+        }
+        for (const watcher of agentsMdWatchers) {
+          watcher.dispose();
+        }
+      },
+    }
+  );
 
   await autoInstallIfMissing();
   await updateStatusBar();

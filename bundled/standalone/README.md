@@ -18,7 +18,7 @@ this directory; edit this README's template in
 3. For Claude Code, create `CLAUDE.md` containing `@AGENTS.md`, or append
    that line to an existing `CLAUDE.md` without overwriting its content.
 
-All six rules start enabled. Cursor, Cline, opencode, Windsurf, and supported
+All seven rules start enabled. Cursor, Cline, opencode, Windsurf, and supported
 GitHub Copilot features can read the shared file; settings and support vary.
 See the [per-tool notes](../../README.md#per-tool-notes).
 

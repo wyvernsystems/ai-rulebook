@@ -6,6 +6,77 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A seventh rule, `review.mdc` (Review). It applies only when you explicitly
+  ask an agent for a full code review, never on its own. The agent reviews
+  every unpushed change (or a range you name) for bugs, security, dead code,
+  duplication, improvements, tests, and docs, fixing as it goes, and reports
+  licensing concerns without fixing them. It then runs tests, lint, and type
+  checks, reports by pass, and commits and pushes, never force-pushing.
+  Existing installs get the rule, enabled, on `Install / update rule pack`;
+  turn it off in the sidebar like any other rule.
+- `AI Rulebook: Enable fast parallel agent mode` and
+  `AI Rulebook: Disable fast parallel agent mode`. The mode is off until you
+  enable it. Enabling adds a separate managed block to `AGENTS.md` in every
+  open folder that tells agents to finish sooner by splitting the work into
+  units that each own their files, writing a shared contract first, running
+  the ready units at the same time, then integrating, running the full checks,
+  and fixing the combined result themselves, with one review of the whole
+  diff on the strongest model. It uses more tokens than working alone, so it
+  is a trade of cost for speed, and it is separate from Claude Code's `/fast`
+  toggle. It writes no per-tool folders or settings. The rule pack commands
+  never turn it on or remove it.
+- `Show rule pack status` reports whether the mode is on.
+- `AI Rulebook: Select agent mode…`: a quick pick with Off, Token-efficient
+  subagent mode, and Fast parallel agent mode that marks the current one. It
+  switches every open folder in one step, removing the other mode's block and
+  writing the chosen one, so you no longer disable one mode before enabling
+  the other. Off removes the mode blocks. The enable and disable commands
+  remain in the command palette.
+- The sidebar has an **Agent mode** row after the rules (Off, the mode, or
+  `Conflict: more than one on`) that opens the picker, and the status bar
+  shows the mode (`AI 7/7 · parallel`, `· subagent`). If both mode blocks are
+  present the status bar warns (`AI 7/7 · 2 modes`) and `Show rule pack
+  status` prints a warning; pick a mode to fix it.
+- Fast parallel agent mode caps fan-out at five units at once, falls back to
+  working alone when fan-out stops paying, and spells out how worktree units
+  are merged: one at a time, checking each, resolving conflicts against the
+  contract, and removing the worktrees.
+
+### Changed
+
+- The `scope.mdc` rule now has agents fix small, local defects they find while
+  working, even outside the task (bugs, dead code, stale docs, broken tests),
+  when the project's checks verify the fix, and list them under an "Also
+  fixed" heading. They only report, without fixing, a defect whose fix would
+  change a public interface or intended behavior, need a migration or
+  dependency change, be large, or need a product decision. This replaces
+  "report unrelated bugs, don't fix them".
+- The `docs.mdc` rule asks for dense documentation for a reader who acts on
+  it (human or agent): no filler, one fact in one place, lists and tables over
+  prose, and agent-instruction files kept shortest.
+- The `git.mdc` rule stages the task's changes together with its "Also fixed"
+  items.
+- Rule wording is tightened for agents: one instruction per bullet, the most
+  often broken instruction first in each rule, and lines models already
+  follow removed. Agents end every task with a report under fixed headings
+  (Changed, Also fixed, Checks, Not done).
+- The marketplace listing is renamed **AI Rulebook: AGENTS.md Rules for Coding
+  Agents**, with a description and keywords naming `AGENTS.md`, `CLAUDE.md`,
+  and the supported tools so searches in Cursor, Open VSX, and the VS Code
+  Marketplace find it. The extension ID `WyvernSystemsLLC.ai-rulebook` is
+  unchanged, so existing installs update normally.
+- The sidebar toolbar's four mode entries are replaced by one Select agent
+  mode… entry.
+- The sidebar and status bar refresh automatically when a workspace folder's
+  root `AGENTS.md` changes on disk (git pull, branch switch, hand edit).
+- Token-efficient subagent mode can no longer be enabled while fast parallel
+  agent mode is on, and the reverse. The enable command checks every open
+  folder first and, if any has the other mode, shows an error naming the
+  disable command to run (or Select agent mode…) and writes nothing in any
+  folder.
+
 ## [4.3.0] - 2026-09-19
 
 ### Added

@@ -16,6 +16,8 @@ export const state = {
   warningChoice: undefined,
   openedDocuments: [],
   shownDocuments: [],
+  fileWatchers: [],
+  workspaceFolderListeners: [],
 };
 
 export class EventEmitter {
@@ -155,6 +157,30 @@ class StatusBarItem {
   dispose() {}
 }
 
+export class RelativePattern {
+  constructor(base, pattern) {
+    this.base = base;
+    this.pattern = pattern;
+  }
+}
+
+export class FileSystemWatcher {
+  constructor(globPattern) {
+    this.globPattern = globPattern;
+    this.disposed = false;
+    this.created = new EventEmitter();
+    this.changed = new EventEmitter();
+    this.deleted = new EventEmitter();
+    this.onDidCreate = this.created.event;
+    this.onDidChange = this.changed.event;
+    this.onDidDelete = this.deleted.event;
+  }
+
+  dispose() {
+    this.disposed = true;
+  }
+}
+
 export const StatusBarAlignment = {
   Left: 1,
   Right: 2,
@@ -176,6 +202,17 @@ export const workspace = {
       },
 
     };
+  },
+
+  createFileSystemWatcher(globPattern) {
+    const watcher = new FileSystemWatcher(globPattern);
+    state.fileWatchers.push(watcher);
+    return watcher;
+  },
+
+  onDidChangeWorkspaceFolders(listener) {
+    state.workspaceFolderListeners.push(listener);
+    return { dispose: () => {} };
   },
 
   async openTextDocument(fsPath) {
@@ -275,6 +312,8 @@ export function resetVscodeMock() {
   state.warningChoice = undefined;
   state.openedDocuments = [];
   state.shownDocuments = [];
+  state.fileWatchers = [];
+  state.workspaceFolderListeners = [];
   workspace.workspaceFolders = undefined;
   env.uriScheme = "vscode";
   env.appName = "Visual Studio Code";
@@ -282,7 +321,9 @@ export function resetVscodeMock() {
 
 export const vscode = {
   EventEmitter,
+  FileSystemWatcher,
   Position,
+  RelativePattern,
   Range,
   StatusBarAlignment,
   ThemeColor,

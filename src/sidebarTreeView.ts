@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { activeAgentModes, SELECT_AGENT_MODE_COMMAND_TITLE } from "./agentModes";
 import { AGENTS_MD, hasRulesBlock, isRuleEnabledInAgentsMd } from "./agentsMd";
 import { UI_COLORS } from "./uiPresentation";
 
@@ -17,7 +18,12 @@ type RuleItem = {
   ruleFile: string; // forward-slash relative path from manifest
 };
 
-type Node = RuleItem;
+/** One row after the rules showing the agent mode; selecting it opens the picker. */
+type ModeItem = {
+  kind: "mode";
+};
+
+type Node = RuleItem | ModeItem;
 
 /** Applies one sidebar toggle to the workspace; errors are shown to the user. */
 export type RuleToggleHandler = (
@@ -96,7 +102,7 @@ export class RulesTreeProvider implements vscode.TreeDataProvider<Node> {
   }
 
   getTreeItem(node: Node): Promise<vscode.TreeItem> {
-    return this.ruleTreeItem(node);
+    return node.kind === "mode" ? this.modeTreeItem() : this.ruleTreeItem(node);
   }
 
   getChildren(parent?: Node): Promise<Node[]> {
@@ -104,11 +110,47 @@ export class RulesTreeProvider implements vscode.TreeDataProvider<Node> {
       if (!vscode.workspace.workspaceFolders?.length) {
         return Promise.resolve([]);
       }
-      return Promise.resolve(
-        this.ruleFiles.map((ruleFile) => ({ kind: "rule", ruleFile }))
-      );
+      return Promise.resolve([
+        ...this.ruleFiles.map((ruleFile): Node => ({ kind: "rule", ruleFile })),
+        { kind: "mode" },
+      ]);
     }
     return Promise.resolve([]);
+  }
+
+  private async modeTreeItem(): Promise<vscode.TreeItem> {
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const item = new vscode.TreeItem("Agent mode", vscode.TreeItemCollapsibleState.None);
+    item.command = {
+      command: "aiRules.selectAgentMode",
+      title: SELECT_AGENT_MODE_COMMAND_TITLE,
+    };
+    let modes;
+    try {
+      modes = root ? await activeAgentModes(root) : [];
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      item.description = "Unable to read";
+      item.tooltip = `Unable to read ${AGENTS_MD} in ${root}: ${reason}`;
+      item.iconPath = new vscode.ThemeIcon("warning");
+      return item;
+    }
+    if (modes.length > 1) {
+      item.description = "Conflict: more than one on";
+      item.tooltip =
+        `${modes.map((mode) => mode.label).join(" and ")} are both in ${AGENTS_MD}, ` +
+        `so agents get conflicting instructions. Select to keep one.`;
+      item.iconPath = new vscode.ThemeIcon("warning");
+      return item;
+    }
+    const mode = modes[0];
+    item.description = mode ? mode.label : "Off";
+    item.tooltip = `Agent mode · ${mode ? mode.label : "Off"}\n\nSelect to switch modes.`;
+    item.iconPath = new vscode.ThemeIcon(
+      mode ? "rocket" : "circle-outline",
+      new vscode.ThemeColor(mode ? UI_COLORS.active : UI_COLORS.inactive)
+    );
+    return item;
   }
 
   private async ruleTreeItem(node: RuleItem): Promise<vscode.TreeItem> {
@@ -195,6 +237,9 @@ export function bindRulesTreeView(
       return;
     }
     for (const [node, state] of e.items) {
+      if (node.kind !== "rule") {
+        continue;
+      }
       const enable = state === vscode.TreeItemCheckboxState.Checked;
       try {
         await toggleRule(root, node.ruleFile, enable);

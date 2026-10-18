@@ -1,7 +1,7 @@
 {
   "name": "ai-rulebook",
-  "displayName": "AI Rulebook",
-  "description": "AI Rulebook — install and manage focused, always-on engineering rules in AGENTS.md (with a CLAUDE.md import for Claude Code), shared by Cursor, Cline, opencode, Windsurf, GitHub Copilot, and Claude Code.",
+  "displayName": "AI Rulebook: AGENTS.md Rules for Coding Agents",
+  "description": "Manage AGENTS.md rules (with a CLAUDE.md import) for AI coding agents in Cursor, Claude Code, GitHub Copilot, Cline, Windsurf, opencode, and Codex: toggle rules, switch agent modes, and run an on-request code review.",
   "version": "4.3.0",
   "publisher": "WyvernSystemsLLC",
   "license": "MIT",
@@ -15,20 +15,35 @@
     "url": "https://github.com/wyvernsystems/ai-rulebook-vscode-extension.git"
   },
   "keywords": [
-    "cursor",
-    "cursor-rules",
-    "ai",
-    "ai-agent",
-    "ai-rules",
+    "agents-md",
+    "agents.md",
+    "claude-md",
+    "claude.md",
     "rules",
-    "rulebook",
-    "cline",
-    "opencode",
+    "ai-rules",
+    "agent-rules",
+    "coding-rules",
+    "cursor-rules",
+    "vscode-rules",
+    "copilot-instructions",
+    "cline-rules",
+    "windsurf-rules",
     "claude-code",
-    "windsurf",
+    "cursor",
     "github-copilot",
+    "cline",
+    "windsurf",
+    "opencode",
+    "codex",
+    "vscode",
+    "ai-agent",
+    "coding-agent",
+    "subagents",
+    "guardrails",
+    "code-review",
     "prompt-engineering",
-    "code-assistant"
+    "rulebook",
+    "ai"
   ],
   "engines": {
     "vscode": "^1.85.0",
@@ -80,6 +95,11 @@
         "category": "AI Rulebook"
       },
       {
+        "command": "aiRules.selectAgentMode",
+        "title": "AI Rulebook: Select agent mode…",
+        "category": "AI Rulebook"
+      },
+      {
         "command": "aiRules.enableSubagentMode",
         "title": "AI Rulebook: Enable token-efficient subagent mode",
         "category": "AI Rulebook"
@@ -87,6 +107,16 @@
       {
         "command": "aiRules.disableSubagentMode",
         "title": "AI Rulebook: Disable token-efficient subagent mode",
+        "category": "AI Rulebook"
+      },
+      {
+        "command": "aiRules.enableParallelMode",
+        "title": "AI Rulebook: Enable fast parallel agent mode",
+        "category": "AI Rulebook"
+      },
+      {
+        "command": "aiRules.disableParallelMode",
+        "title": "AI Rulebook: Disable fast parallel agent mode",
         "category": "AI Rulebook"
       },
       {
@@ -164,14 +194,9 @@
           "group": "2_workspace@3"
         },
         {
-          "command": "aiRules.enableSubagentMode",
+          "command": "aiRules.selectAgentMode",
           "when": "view == aiRules.rulesTree",
           "group": "3_modes@1"
-        },
-        {
-          "command": "aiRules.disableSubagentMode",
-          "when": "view == aiRules.rulesTree",
-          "group": "3_modes@2"
         },
         {
           "command": "aiRules.showCoreStatus",

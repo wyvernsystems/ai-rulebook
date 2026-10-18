@@ -1,8 +1,9 @@
 # AI Rulebook
 
 AI Rulebook is a VS Code extension that installs a small set of always-on
-engineering rules for AI coding agents into your project's `AGENTS.md`. Six
-topic rules cover scope, code reuse, testing, docs, Markdown, and Git. A
+engineering rules for AI coding agents into your project's `AGENTS.md`. Seven
+topic rules cover scope, code reuse, testing, docs, Markdown, Git, and
+on-request code review. A
 sidebar lets you turn each rule on and off, and every toggle edits that
 rule's section of `AGENTS.md` in place.
 
@@ -20,7 +21,9 @@ before migrating an existing workspace.
 Distribution channels are:
 
 - [Open VSX](https://open-vsx.org/extension/WyvernSystemsLLC/ai-rulebook) —
-  search for **AI Rulebook** in editors configured to use this registry.
+  search for **AI Rulebook** in editors configured to use this registry,
+  including Cursor. If other "AI" extensions bury it, search for the ID
+  `WyvernSystemsLLC.ai-rulebook` instead.
 - The Visual Studio Marketplace — search for **AI Rulebook** in stock VS
   Code, when the version you need has been published there.
 - [GitHub releases](https://github.com/wyvernsystems/ai-rulebook-vscode-extension/releases)
@@ -85,8 +88,8 @@ The extension does not replace your existing `CLAUDE.md` instructions.
 
 The commands below are available from the command palette
 (`Ctrl/Cmd+Shift+P`) under **AI Rulebook**. The sidebar toolbar provides
-refresh, install, remove, legacy cleanup, subagent mode, status, and
-whole-pack toggles; use its checkboxes or the palette for individual rules.
+refresh, install, remove, legacy cleanup, agent mode selection, status, and whole-pack toggles; use its
+checkboxes or the palette for individual rules.
 
 | Command | What it does |
 | --- | --- |
@@ -99,11 +102,14 @@ whole-pack toggles; use its checkboxes or the palette for individual rules.
 | **Remove legacy per-tool rule folders…** | Deletes the folders earlier releases generated (`.cursor/rules/ai-rules/`, `.clinerules/ai-rules/`, `.opencode/rules/ai-rules/` plus its `/ai-rulebook` command, `.claude/rules/ai-rules/`, `.windsurf/rules/ai-rules/`, `.github/instructions/ai-rules/`) after a confirmation. |
 | **Enable token-efficient subagent mode** | Off by default. Writes or refreshes the mode's own block in `AGENTS.md` (and the `@AGENTS.md` import in `CLAUDE.md`) in every open folder. It writes no other files. See [Token-efficient subagent mode](#token-efficient-subagent-mode). |
 | **Disable token-efficient subagent mode** | Removes that block from `AGENTS.md` in every open folder. |
-| **Show rule pack status** | Focuses the sidebar and writes the on / off state of each rule and of subagent mode to the **AI Rulebook** output channel. |
+| **Enable fast parallel agent mode** | Off by default. Writes or refreshes the mode's own block in `AGENTS.md` (and the `@AGENTS.md` import in `CLAUDE.md`) in every open folder. It writes no other files and cannot be enabled while token-efficient subagent mode is on (the error points to **Select agent mode…**). See [Fast parallel agent mode](#fast-parallel-agent-mode). |
+| **Disable fast parallel agent mode** | Removes that block from `AGENTS.md` in every open folder. |
+| **Select agent mode…** | Opens a quick pick with Off, Token-efficient subagent mode, and Fast parallel agent mode, marking the current one (read from the first folder). It switches every open folder in one step: it removes the other mode's block and writes the chosen one in a single write, so you do not have to disable one mode before enabling the other. Off removes the mode blocks (and deletes `AGENTS.md` and its `CLAUDE.md` import when nothing else remains). |
+| **Show rule pack status** | Focuses the sidebar and writes the on / off state of each rule, of subagent mode, and of fast parallel agent mode to the **AI Rulebook** output channel. If both mode blocks are present it adds a warning line. |
 | **Refresh sidebar** | Re-reads `AGENTS.md` and repaints the sidebar and status bar. |
 
-Install, remove, the legacy-folder cleanup, and the subagent mode commands
-apply to every open workspace folder. The sidebar, the status bar, and the rule toggles read and edit the
+Install, remove, the legacy-folder cleanup, and the agent mode commands
+(including **Select agent mode…**) apply to every open workspace folder. The four enable / disable mode commands stay in the command palette; the sidebar toolbar has the single **Select agent mode…** entry. The sidebar, the status bar, and the rule toggles read and edit the
 first workspace folder's `AGENTS.md`.
 
 Selecting a rule's name in the sidebar opens `AGENTS.md` at that rule's
@@ -120,25 +126,40 @@ normalize blank lines around the former block.
 
 - **`scope.mdc`** — inspect relevant code and commands, complete and verify
   the task, resolve routine choices autonomously, keep changes in scope,
-  and follow conventions without overriding safety or verification.
-- **`code.mdc`** — reuse helpers and established module boundaries, check
-  dependency maintenance and compatibility, validate trust-boundary input,
-  protect secrets, and preserve error causes with actionable context.
-- **`tests.mdc`** — test observable behavior at the appropriate level,
+  and follow conventions without overriding safety or verification. Agents
+  also fix small, local, check-verified defects they find along the way
+  (bugs, dead code, stale docs, broken tests) and list them under an "Also
+  fixed" heading; larger or behavior-changing ones are only reported.
+  Every task ends with a report under fixed headings: Changed, Also fixed,
+  Checks, Not done.
+- **`code.mdc`** — reuse helpers, validate input where it enters, protect
+  secrets, preserve error causes with actionable context, and check
+  dependency maintenance and compatibility.
+- **`tests.mdc`** — never report an unrun check as passing or weaken a check
+  to pass, test observable behavior at the appropriate level,
   reproduce bugs with regression tests when feasible, run project tests and
   existing lint/type checks, recommend a suitable linter when absent and add
-  it only when requested or approved, preserve valid coverage, inspect the final diff,
-  and report verification results and blockers accurately.
+  it only when requested or approved, and inspect the final diff.
 - **`docs.mdc`** — update documentation made inaccurate by the change,
   follow the project's layout, add user-facing release notes when appropriate,
   and create documentation only when requested or needed to explain changed
-  behavior.
+  behavior. Documentation is written densely for a reader who acts on it
+  (human or agent), with one fact in one place, and agent-instruction files
+  are kept shortest.
 - **`markdown.mdc`** — one H1, no skipped heading levels, `-` bullets,
   language-tagged code fences, inline code for paths and commands, relative
   links.
 - **`git.mdc`** — preserve existing work; no commits, pushes, or branches
-  unless asked; stage only task changes, inspect the staged diff, and never
-  rewrite pushed history unless the user names the operation.
+  unless asked; stage only your changes (the task and its "Also fixed"
+  items), inspect the staged diff, and never rewrite pushed history unless
+  the user names the operation.
+- **`review.mdc`** — applies only when you explicitly ask for a full code
+  review. Covers unpushed changes (or a range you name) in passes for bugs,
+  security, dead code, duplication and structure, improvements, tests, and
+  docs, fixing as it goes, and reports licensing concerns without fixing
+  them. Runs tests, lint, and type checks, reports changes by pass, then commits and
+  pushes (asking for the review is the request to do so unless you say
+  otherwise) and never force-pushes.
 
 The rules are authored as Cursor `.mdc` files in `bundled/ai-rules/`. On the
 way into `AGENTS.md` the frontmatter is dropped and each rule's heading is
@@ -157,7 +178,7 @@ conclusive the rule says "the project's test command" instead of guessing.
 This optional mode tells an agent to spend its expensive session model on
 judgment only (reading the request, planning, writing specs, the final
 report) and to delegate searching, editing, and check runs to subagents on
-cheaper models. It is **off by default** and is not part of the six-rule
+cheaper models. It is **off by default** and is not part of the seven-rule
 pack: installing, toggling, or removing the pack never touches it, and
 **Enable all rules** does not turn it on.
 
@@ -199,6 +220,74 @@ subagent on a cheaper model when its spawn call lets the agent choose one
 (Claude Code's does). Where it does not, delegation still keeps file
 contents and command output out of the session context, which is the larger
 saving.
+
+It cannot be on at the same time as [fast parallel agent
+mode](#fast-parallel-agent-mode), because the two pull in opposite
+directions: enabling either one fails while the other is on.
+
+## Fast parallel agent mode
+
+This optional mode tells an agent to finish sooner by splitting the work into
+units, running them at the same time, and then integrating and verifying the
+result itself. It is **off by default** and is not part of the seven-rule pack:
+installing, toggling, or removing the pack never touches it, and **Enable all
+rules** does not turn it on.
+
+It uses **more tokens** than working alone: it trades cost for wall-clock
+speed, the opposite of token-efficient subagent mode. It is not related to
+Claude Code's own `/fast` toggle, which speeds up the output of one model;
+the two can be used together.
+
+**Enable fast parallel agent mode** writes one block into `AGENTS.md` in every
+open folder, between `<!-- ai-rulebook:parallel-mode:start -->` and
+`<!-- ai-rulebook:parallel-mode:end -->`, and makes sure `CLAUDE.md` imports
+`AGENTS.md`. That is all it writes: no per-tool folders and no tool settings.
+Run it again to refresh the wording and the detected test command. **Disable
+fast parallel agent mode** removes the block, and deletes `AGENTS.md` (and its
+`CLAUDE.md` import) only when nothing else is left in it.
+
+The text is written for any tool that reads `AGENTS.md` and can run subagents
+in parallel; other tools are told to skip it. It relies on the orchestrating
+agent to follow it:
+
+- **Scale to the task.** A change in one file, or steps that each depend on
+  the last, is done directly without fan-out.
+- **Units by file ownership.** Every file that will change belongs to exactly
+  one unit, and a shared contract (names, signatures, types, paths,
+  behavior) is written before fan-out so units build to it. Ready units are
+  spawned in one message.
+- **No downgraded implementers.** Implementers get a model at least as capable
+  as their unit needs; smaller models are fine for searches and check runs.
+- **At most five units at once.** More units hit rate limits and make
+  integration harder than the time they save, so small related changes are
+  folded into one unit.
+- **No shared files.** Two units never edit the same file in the same
+  checkout: use git worktrees or run them in sequence.
+- **Fall back to working alone.** If splitting proves harder than the work,
+  or units keep waiting on each other, the agent stops spawning and finishes
+  the rest itself.
+- **Integrate and fix.** The orchestrator brings the units together, runs the
+  full test, lint, and type checks on the combined result, and fixes
+  integration failures itself, with at most two repair rounds before it
+  reports what still fails. Worktree units are merged into the main checkout
+  one at a time: it reads each diff, applies it, checks it, resolves
+  conflicts against the contract without dropping either side, and removes
+  the worktree.
+- **One required review.** The combined diff gets one read-only review on the
+  strongest model, then the orchestrator reads the final diff itself.
+- **Delegate contracts.** The block states what an implementer, researcher,
+  and reviewer must do and how each replies.
+
+**Mutual exclusion.** The mode cannot be enabled while token-efficient
+subagent mode is on, and token-efficient subagent mode cannot be enabled
+while this mode is on. The enable command checks every open folder first; if
+any folder has the other mode, it shows an error naming **Select agent mode…**
+and the disable command, and writes nothing in any folder. **Select agent
+mode…** is the one-step way to switch.
+
+As with subagent mode, these are instructions rather than configuration: the
+mode cannot force parallelism or pick models, and it cannot guarantee that
+your tool supports git worktrees.
 
 ## Just want the rules?
 
@@ -285,10 +374,18 @@ are no longer written or updated. After installing this version:
   extension preserves it when updating an existing block and refuses to
   overwrite a block whose markers are damaged. Fix the markers manually;
   the removal command also requires a valid block.
-- A status bar item shows the enabled-rule count (`AI 5/6`); click it to
-  show the rule pack status. It is refreshed after every command that edits
-  `AGENTS.md`. Use **Refresh sidebar** after external edits; no file watcher
-  keeps the UI synchronized automatically.
+- A status bar item shows the enabled-rule count and the agent mode
+  (`AI 7/7 · parallel` or `AI 7/7 · subagent`; the tooltip names the mode);
+  click it to show the rule pack status. If both mode blocks are present
+  (a hand edit or merge), it shows a warning (`AI 7/7 · 2 modes`), the
+  sidebar **Agent mode** row shows the conflict, and the status output prints
+  a warning; pick a mode with **Select agent mode…** to fix it.
+- The sidebar has an **Agent mode** row after the rules showing Off, the
+  active mode, or `Conflict: more than one on`; selecting it opens the picker.
+- The sidebar and status bar refresh after every command that edits
+  `AGENTS.md` and automatically when each workspace folder's root `AGENTS.md`
+  changes on disk (git pull, branch switch, hand edit). **Refresh sidebar**
+  remains available.
 - If the sidebar cannot read or parse `AGENTS.md`, rules show **Unable to
   read** with details in the tooltip. Fix the file and refresh the sidebar
   to restore the checkboxes.
@@ -324,7 +421,8 @@ files and other non-rule files are rejected. Run `npm run sync-bundled`
 after adding, removing, or editing a rule file to regenerate `bundled/manifest.json` and the standalone
 `bundled/standalone/AGENTS.md` and its README — commit changed generated
 files alongside the rule change. The subagent mode text lives in
-`bundled/subagent-mode/section.md` and is rendered the same way as a rule. Edit the standalone README template in
+`bundled/subagent-mode/section.md` and the fast parallel agent mode text in
+`bundled/parallel-mode/section.md`; both are rendered the same way as a rule. Edit the standalone README template in
 `scripts/build-standalone.mjs`, not the generated file.
 
 Source rules hold the `{{TEST_COMMAND}}` token verbatim; the extension
@@ -333,6 +431,7 @@ repo's own `AGENTS.md` carries the rendered block as a dogfooded install;
 change a rule in `bundled/ai-rules/`, then re-run the install command to
 regenerate it. It also has token-efficient subagent mode enabled; after
 editing `bundled/subagent-mode/section.md`, re-run the enable command.
+Fast parallel agent mode is not enabled here, so its block is not dogfooded.
 
 Requirements are tracked in [docs/REQUIREMENTS.md](./docs/REQUIREMENTS.md).
 Cutting a release is documented in [docs/RELEASING.md](./docs/RELEASING.md).
@@ -353,6 +452,12 @@ install and the token-efficient subagent mode block.
 - Subagent mode is guidance only. It cannot pin a subagent's model, verify
   that a model is available to your account, or stop an agent from doing the
   work itself on the session model.
+- Fast parallel agent mode is guidance only. It cannot force an agent to run
+  work in parallel, pick the models it uses, or guarantee that your tool
+  supports git worktrees. It spends more tokens than working alone.
+- Token-efficient subagent mode and fast parallel agent mode are mutually
+  exclusive; enabling one fails while the other is on. Use **Select agent
+  mode…** to switch.
 - Removing a block does not turn off auto-install. To keep it removed on
   later activation, also disable `aiRules.autoInstallOnOpenWorkspace`.
 - The extension manages the rule text itself; it does not verify that code

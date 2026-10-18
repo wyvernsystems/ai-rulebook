@@ -5,10 +5,12 @@ alwaysApply: true
 
 # Scope
 
-- Before editing, inspect the relevant implementation, tests, and project commands. Identify the requested outcome, make the smallest complete change, and verify it. Continue until complete or blocked by a concrete dependency.
-- Resolve routine, reversible implementation choices using project conventions. Ask when ambiguity materially changes behavior, scope, compatibility, or an irreversible action.
-- Change only what the task requires. No drive-by refactors, renames, reformatting, or version bumps.
-- Tests and documentation for the change itself are part of the task, never drive-by work.
-- Follow local naming, formatting, and structural conventions. Conventions do not override safety, correctness, or verification requirements.
-- If a rule implies work outside the task, state it and move on — don't act on it.
-- An unrelated bug or dead code you notice gets reported, not fixed.
+- Change what the task requires plus the defect fixes below. No drive-by refactors, renames, reformatting, or version bumps.
+- Before editing, read the relevant code, its tests, and the project's commands.
+- Make the smallest complete change, verify it, and keep going until it is done or blocked by something concrete.
+- Decide routine, reversible choices yourself by following project conventions. Ask only when the choice changes behavior, scope, compatibility, or cannot be undone.
+- Tests and docs for your change are part of the task.
+- Follow local naming, formatting, and structure, except where they conflict with safety, correctness, or verification.
+- Fix defects you find while working, even outside the task (bugs, dead code, stale docs, wrong or broken tests), when the fix is small, local, and verified by the project's checks.
+- Report a defect without fixing it when the fix would change a public interface or intended behavior, needs a migration or dependency change, is large, or needs a product decision.
+- End with a report under these headings, omitting empty ones: **Changed**, **Also fixed**, **Checks** (each command run and its result), **Not done** (failing or unrun checks, blockers, defects reported but not fixed).

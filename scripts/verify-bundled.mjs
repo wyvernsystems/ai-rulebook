@@ -3,8 +3,9 @@
  * Checks that the rule pack shipped in the VSIX is internally consistent:
  * `bundled/manifest.json` lists exactly the rules present in
  * `bundled/ai-rules/`, every rule has usable frontmatter, and no rule carries
- * a placeholder the extension cannot render. It also checks the section of
- * token-efficient subagent mode in `bundled/subagent-mode/`.
+ * a placeholder the extension cannot render. It also checks the sections of
+ * token-efficient subagent mode in `bundled/subagent-mode/` and fast parallel
+ * agent mode in `bundled/parallel-mode/`.
  *
  * Workspace `AGENTS.md` is a rendered install and is not compared with the
  * source. This script runs independently of compiled extension code.
@@ -20,7 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 const bundleDir = path.join(repoRoot, "bundled", "ai-rules");
 const manifestPath = path.join(repoRoot, "bundled", "manifest.json");
-const subagentModeDir = path.join(repoRoot, "bundled", "subagent-mode");
+const modeFolders = ["subagent-mode", "parallel-mode"];
 
 function fail(message) {
   console.error(message);
@@ -102,20 +103,23 @@ for (const rel of ruleFiles) {
   }
 }
 
-/** The opt-in subagent mode ships one section; `{{TEST_COMMAND}}` is its only placeholder. */
-const modeFiles = fs.existsSync(subagentModeDir) ? walkFiles(subagentModeDir) : [];
-if (!modeFiles.includes("section.md")) {
-  problems.push("missing from bundled/subagent-mode: section.md");
-}
-for (const rel of modeFiles) {
-  if (rel !== "section.md") {
-    problems.push(`unexpected file in bundled/subagent-mode: ${rel}`);
-    continue;
+/** Each opt-in mode ships one section; `{{TEST_COMMAND}}` is its only placeholder. */
+for (const folder of modeFolders) {
+  const modeDir = path.join(repoRoot, "bundled", folder);
+  const modeFiles = fs.existsSync(modeDir) ? walkFiles(modeDir) : [];
+  if (!modeFiles.includes("section.md")) {
+    problems.push(`missing from bundled/${folder}: section.md`);
   }
-  const body = fs.readFileSync(path.join(subagentModeDir, rel), "utf8");
-  for (const token of body.match(/\{\{[^}]*\}\}/g) ?? []) {
-    if (!KNOWN_PLACEHOLDERS.has(token)) {
-      problems.push(`unrenderable placeholder ${token} in bundled/subagent-mode/${rel}`);
+  for (const rel of modeFiles) {
+    if (rel !== "section.md") {
+      problems.push(`unexpected file in bundled/${folder}: ${rel}`);
+      continue;
+    }
+    const body = fs.readFileSync(path.join(modeDir, rel), "utf8");
+    for (const token of body.match(/\{\{[^}]*\}\}/g) ?? []) {
+      if (!KNOWN_PLACEHOLDERS.has(token)) {
+        problems.push(`unrenderable placeholder ${token} in bundled/${folder}/${rel}`);
+      }
     }
   }
 }
@@ -130,5 +134,5 @@ if (problems.length) {
 }
 
 console.log(
-  `OK: bundled rule pack is consistent (${ruleFiles.length} rules, subagent mode section).`
+  `OK: bundled rule pack is consistent (${ruleFiles.length} rules, ${modeFolders.length} mode sections).`
 );

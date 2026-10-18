@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Docs
 
-- Update existing documentation when the change makes it inaccurate, including usage, configuration, requirements, architecture, and development commands.
-- Follow the project's documentation layout and conventions. If none exist, keep platform-read files at the root and other documentation under `docs/`, linked from `README.md`.
-- Add user-facing release notes for release-worthy changes. Follow the existing changelog format; describe visible behavior and skip internal refactors.
-- Create new documentation only when requested or necessary to explain the changed behavior. Do not introduce a new documentation framework without being asked.
+- When your change makes documentation inaccurate (usage, configuration, requirements, architecture, development commands), update it in the same change.
+- Write densely for a reader who will act on it, human or agent: commands, paths, settings, constraints, and the reason behind non-obvious choices. Cut filler, restated code, and marketing. Prefer lists and tables to long prose.
+- Keep each fact in one place and link to it elsewhere.
+- Keep agent-instruction files (`AGENTS.md`, `CLAUDE.md`, rule files) shortest of all: every line is loaded into every session.
+- Add a release note for user-visible changes in the existing changelog format. Describe behavior; skip internal refactors.
+- Add new documents only when asked or when the change cannot be explained in existing ones. Without an existing layout, put them under `docs/`, linked from `README.md`. Don't introduce a documentation framework unasked.

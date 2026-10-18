@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { AGENTS_MD, isRuleEnabledInAgentsMd } from "./agentsMd";
-import { isSubagentModeEnabled } from "./subagentMode";
+import { activeAgentModes, AGENT_MODES, SELECT_AGENT_MODE_COMMAND_TITLE } from "./agentModes";
 
 export function createAiRulesOutputChannel(): vscode.OutputChannel {
   return vscode.window.createOutputChannel("AI Rulebook");
@@ -31,7 +31,14 @@ export async function showRulePackStatusInOutput(
     `active = text present in ${AGENTS_MD}; off = section kept but its text removed.`
   );
   channel.appendLine("");
-  channel.appendLine(
-    `token-efficient subagent mode: ${(await isSubagentModeEnabled(workspaceRoot)) ? "on" : "off"}`
-  );
+  const active = await activeAgentModes(workspaceRoot);
+  for (const mode of AGENT_MODES) {
+    channel.appendLine(`${mode.name}: ${active.includes(mode) ? "on" : "off"}`);
+  }
+  if (active.length > 1) {
+    channel.appendLine("");
+    channel.appendLine(
+      `warning: ${active.map((mode) => mode.name).join(" and ")} are both on, so agents get conflicting instructions. Run "${SELECT_AGENT_MODE_COMMAND_TITLE}" to keep one.`
+    );
+  }
 }

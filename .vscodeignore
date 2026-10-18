@@ -27,6 +27,7 @@ docs/**
 bundled/standalone/**
 !bundled/ai-rules/**
 !bundled/subagent-mode/**
+!bundled/parallel-mode/**
 !bundled/manifest.json
 !out/**
 !icon.png

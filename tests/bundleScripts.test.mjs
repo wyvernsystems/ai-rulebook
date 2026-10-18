@@ -17,8 +17,10 @@ async function withBundle(run) {
       "---\ndescription: Code\n---\n\n# Code\n\n- Reuse helpers.\n");
     await fs.writeFile(path.join(root, "bundled", "manifest.json"),
       JSON.stringify({ version: 1, files: ["code.mdc"] }) + "\n");
-    await fs.cp(new URL("../bundled/subagent-mode/", import.meta.url),
-      path.join(root, "bundled", "subagent-mode"), { recursive: true });
+    for (const folder of ["subagent-mode", "parallel-mode"]) {
+      await fs.cp(new URL(`../bundled/${folder}/`, import.meta.url),
+        path.join(root, "bundled", folder), { recursive: true });
+    }
     await run(root);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
@@ -64,20 +66,23 @@ for (const script of ["sync-bundled.mjs", "verify-bundled.mjs"]) {
   }
 }
 
-for (const [label, damage, expected] of [
-  ["an unknown placeholder", (dir) => fs.appendFile(path.join(dir, "section.md"), "\n{{MYSTERY}}\n"),
-    /unrenderable placeholder \{\{MYSTERY\}\} in bundled\/subagent-mode\/section\.md/],
-  ["no section", (dir) => fs.rm(path.join(dir, "section.md")),
-    /missing from bundled\/subagent-mode: section\.md/],
-  ["an unexpected file", (dir) => fs.writeFile(path.join(dir, "extra.md"), "x\n"),
-    /unexpected file in bundled\/subagent-mode: extra\.md/],
-]) {
-  test(`verify-bundled.mjs rejects a subagent mode bundle with ${label}`, async () => {
-    await withBundle(async (root) => {
-      await damage(path.join(root, "bundled", "subagent-mode"));
-      const result = spawnSync(process.execPath, [path.join(root, "scripts", "verify-bundled.mjs")], { encoding: "utf8" });
-      assert.equal(result.status, 1, result.stdout + result.stderr);
-      assert.match(result.stderr, expected);
+for (const folder of ["subagent-mode", "parallel-mode"]) {
+  const modeLabel = folder.replace("-", " ");
+  for (const [label, damage, expected] of [
+    ["an unknown placeholder", (dir) => fs.appendFile(path.join(dir, "section.md"), "\n{{MYSTERY}}\n"),
+      new RegExp(`unrenderable placeholder \\{\\{MYSTERY\\}\\} in bundled/${folder}/section\\.md`)],
+    ["no section", (dir) => fs.rm(path.join(dir, "section.md")),
+      new RegExp(`missing from bundled/${folder}: section\\.md`)],
+    ["an unexpected file", (dir) => fs.writeFile(path.join(dir, "extra.md"), "x\n"),
+      new RegExp(`unexpected file in bundled/${folder}: extra\\.md`)],
+  ]) {
+    test(`verify-bundled.mjs rejects a ${modeLabel} bundle with ${label}`, async () => {
+      await withBundle(async (root) => {
+        await damage(path.join(root, "bundled", folder));
+        const result = spawnSync(process.execPath, [path.join(root, "scripts", "verify-bundled.mjs")], { encoding: "utf8" });
+        assert.equal(result.status, 1, result.stdout + result.stderr);
+        assert.match(result.stderr, expected);
+      });
     });
-  });
+  }
 }

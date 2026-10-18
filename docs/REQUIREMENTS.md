@@ -6,8 +6,8 @@ details belong in the code or in the rule files.
 
 ## Functional
 
-- The extension installs six topic rules (`scope.mdc`, `code.mdc`,
-  `tests.mdc`, `docs.mdc`, `markdown.mdc`, and `git.mdc`) as one managed
+- The extension installs seven topic rules (`scope.mdc`, `code.mdc`,
+  `tests.mdc`, `docs.mdc`, `markdown.mdc`, `git.mdc`, and `review.mdc`) as one managed
   block inside `AGENTS.md` at the root of each open workspace folder. Every
   rule is installed enabled by default.
 - The managed block is delimited by `<!-- ai-rulebook:start -->` and
@@ -19,6 +19,11 @@ details belong in the code or in the rule files.
 - When `AGENTS.md` does not exist, install creates it with a `# AGENTS.md`
   title followed by the block. When it exists without a block, the block is
   appended. When it already holds a block, the block is replaced in place.
+- `review.mdc` applies only when the user explicitly asks for a full or
+  thorough code review; agents never start one unprompted. It scopes to
+  unpushed changes (or a named range), fixes findings pass by pass, reports
+  licensing concerns without fixing them, runs tests, lint, and type checks,
+  then commits and pushes without force-pushing.
 - Rule text is rendered from `bundled/ai-rules/*.mdc` on the way into
   `AGENTS.md`: the Cursor frontmatter is removed, `{{TEST_COMMAND}}` is
   replaced with the detected test command (or "the project's test command"),
@@ -73,11 +78,26 @@ details belong in the code or in the rule files.
   be installed. When it is missing they report that the rule pack is not
   installed and name the install command, instead of reporting a success
   that changed nothing.
-- A status bar item shows the enabled-rule count for the first workspace
-  folder (`AI 5/6`). Clicking it runs `AI Rulebook: Show rule pack status`,
+- A status bar item shows the enabled-rule count and agent mode for the first
+  workspace folder (`AI 7/7 · parallel`, `AI 7/7 · subagent`; the tooltip
+  names the mode). When both mode blocks are present it shows a warning
+  (`AI 7/7 · 2 modes`). Clicking it runs `AI Rulebook: Show rule pack status`,
   which focuses the sidebar and writes a plain-text snapshot to the Output
-  channel. It is populated on activation and refreshed after every action
-  that changes rule state.
+  channel. It is populated on activation, refreshed after every action that
+  changes rule state, and refreshed when a workspace folder's root
+  `AGENTS.md` changes on disk (a file watcher per folder).
+- `AI Rulebook: Select agent mode…` opens a quick pick with Off,
+  Token-efficient subagent mode, and Fast parallel agent mode, marking the
+  current one (first folder). It switches every open folder: it removes the
+  other mode's block and writes the chosen one in a single write. Off removes
+  the mode blocks, deleting `AGENTS.md` and the `CLAUDE.md` import when
+  nothing else remains. The four enable / disable mode commands remain in the
+  command palette; the sidebar toolbar has only Select agent mode…. A mode
+  conflict error from enable also points to Select agent mode….
+- The sidebar has an **Agent mode** row after the rules showing Off, the
+  active mode, or `Conflict: more than one on`; selecting it opens the picker.
+  `Show rule pack status` prints a warning line when both mode blocks are
+  present.
 - `AI Rulebook: Remove rule pack` deletes the block from `AGENTS.md` in every
   open folder after a confirmation. When the remaining text is empty or
   only `# AGENTS.md`, the file is deleted and standalone `@AGENTS.md` lines
@@ -122,6 +142,49 @@ details belong in the code or in the rule files.
   without rewriting `AGENTS.md`.
 - `Show rule pack status` reports whether the mode is on in the first
   workspace folder.
+- Fast parallel agent mode is **off by default** and separate from the rule
+  pack, like token-efficient subagent mode: install, the rule toggles,
+  `Enable all rules`, auto-install, and `Remove rule pack` never write or
+  remove it. It is turned on and off only by
+  `AI Rulebook: Enable fast parallel agent mode` and
+  `AI Rulebook: Disable fast parallel agent mode`, which act on every open
+  folder.
+- Enabling it writes a managed block into `AGENTS.md`, delimited by
+  `<!-- ai-rulebook:parallel-mode:start -->` and
+  `<!-- ai-rulebook:parallel-mode:end -->`, outside the rule pack block and
+  through the same per-workspace operation queue. It is rendered from
+  `bundled/parallel-mode/section.md` the way a rule is (headings demoted,
+  `{{TEST_COMMAND}}` replaced) before anything is written. Enabling also
+  ensures the `@AGENTS.md` import in `CLAUDE.md`. Running it again replaces
+  the block in place. It writes nothing else: no per-tool agent folders and
+  no tool settings.
+- Its text must stand alone. It tells tools that cannot run subagents in
+  parallel to skip it and states that it spends more tokens than working
+  alone. It has the orchestrator scale to the task, split work into units by
+  file ownership, write a shared contract before fan-out, spawn ready units
+  in one message, never downgrade implementers to save tokens, never put two
+  units on one file in one checkout (worktrees or sequencing instead), run
+  at most five units at once, fall back to working alone when fan-out stops
+  paying, merge worktree units one at a time (read the diff, apply, check,
+  resolve conflicts against the contract without dropping either side, remove
+  the worktree), integrate and run the full test, lint, and type checks on the combined
+  result, fix integration failures itself within two repair rounds, get one
+  required review of the combined diff on the strongest model, read the
+  final diff. It also carries each delegate's contract (implementer,
+  researcher, reviewer).
+- Disabling removes the block, deleting `AGENTS.md` and the `CLAUDE.md`
+  import under the same rules as `Remove rule pack`. Damaged
+  `ai-rulebook:parallel-mode` markers fail enable, disable, and status
+  without rewriting `AGENTS.md`. `Show rule pack status` reports whether the
+  mode is on in the first workspace folder.
+- Token-efficient subagent mode and fast parallel agent mode are mutually
+  exclusive in both directions: enabling either fails while the other's block
+  is present. The enable command checks every open folder before writing; if
+  any folder has the other mode on, it shows an error naming the other mode's
+  disable command (and `AI Rulebook: Select agent mode…`) and writes nothing
+  in any folder (all-or-nothing). The
+  check runs inside the per-workspace operation queue, so a concurrent enable
+  or disable cannot slip between the check and the write.
 - When a previous extension version is recorded in global state, the
   version changes, a folder is open, and `aiRules.promptInstallOnUpdate` is
   on (default `true`), the extension offers to re-run install. This is not
@@ -135,8 +198,8 @@ details belong in the code or in the rule files.
   `bundled/manifest.json` lists exactly the rules in `bundled/ai-rules/`, that
   every rule has a `description` in its frontmatter, and that no rule carries
   a placeholder the extension cannot render. It also checks that
-  `bundled/subagent-mode/` holds exactly `section.md` and that it carries
-  only known placeholders.
+  `bundled/subagent-mode/` and `bundled/parallel-mode/` each hold exactly
+  `section.md` and that each carries only known placeholders.
 - Bundle sync and verification reject any source file that does not end in
   `.mdc`, including the obsolete `.mdc.disabled` format. Disabled state lives
   only in the installed `AGENTS.md` block.
@@ -193,7 +256,8 @@ details belong in the code or in the rule files.
   `.github/instructions/ai-rules` respectively.
 - **VSIX contents** are limited to compiled JS (`out/**`), the bundled rule
   pack (`bundled/ai-rules/**`, `bundled/manifest.json`), the subagent mode
-  text (`bundled/subagent-mode/section.md`), `icon.png`
+  text (`bundled/subagent-mode/section.md`), the fast parallel agent mode text
+  (`bundled/parallel-mode/section.md`), `icon.png`
   (≤ 128×128 PNG), `LICENSE`, `README.md`, `CHANGELOG.md`, and
   `package.json`. Repository `AGENTS.md` and `CLAUDE.md`, source, scripts,
   lockfiles, build info, legacy ZIP archives, the high-resolution icon master,
@@ -217,9 +281,9 @@ details belong in the code or in the rule files.
 - The extension does **not** edit user settings (`settings.json`).
 - The extension does **not** write per-tool rule folders or edit tool
   config files (opencode config, Claude settings, and so on). That includes
-  token-efficient subagent mode, which lives only in `AGENTS.md`.
-- No file watcher refreshes the UI after external edits. Users can run
-  `Refresh sidebar`; file mutations are not locked across extension hosts
-  or external processes. Removing the pack does not disable auto-install.
+  token-efficient subagent mode and fast parallel agent mode, which live only
+  in `AGENTS.md`.
+- File mutations are not locked across extension hosts or external
+  processes; `Refresh sidebar` remains available. Removing the pack does not disable auto-install.
 - The extension does **not** guarantee the AI follows every active rule —
   models may drop rules under context pressure (see README → *Limitations*).

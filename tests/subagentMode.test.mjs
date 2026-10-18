@@ -152,7 +152,7 @@ describe("enableSubagentMode", () => {
         /section\.md has an unknown placeholder \{\{MYSTERY\}\}/
       );
       await assert.rejects(enableSubagentMode(workspace, path.join(root, "missing"), null), (error) => {
-        assert.match(error.message, /Failed to read bundled subagent mode file section\.md/);
+        assert.match(error.message, /Failed to read bundled token-efficient subagent mode file section\.md/);
         assert.equal(error.cause.code, "ENOENT");
         return true;
       });

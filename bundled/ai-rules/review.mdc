@@ -1,0 +1,22 @@
+---
+description: Full code review, only on explicit request
+alwaysApply: true
+---
+
+# Review
+
+Apply this section only when the user explicitly asks for a full or thorough code review. Never start one on your own.
+
+- Scope: every change not yet pushed — uncommitted changes plus local commits missing from the upstream branch (from the default branch when there is no upstream). Use the range the user names instead when they give one. Read the callers and callees you need to judge a change.
+- Work through these passes and fix what you find as you go; the other rules still apply:
+  1. Bugs: logic errors, edge cases, error handling, races, and leaks. Add a regression test for each fix where feasible.
+  2. Security: trust-boundary input, injection, path handling, auth, secrets, and vulnerable dependencies.
+  3. Dead code: unused code, files, exports, config, and dependencies. Confirm nothing still references it, including config, scripts, and docs.
+  4. Duplication and structure: consolidate real duplicates and refactor where it clearly helps maintainability, keeping public interfaces and intended behavior.
+  5. Improvements: low-risk gains in correctness, performance, or clarity.
+  6. Tests: cover changed behavior and fix weak or wrong assertions.
+  7. Docs: fix anything the review shows is inaccurate.
+  8. Licensing: report, don't fix — dependency licenses that may conflict with the project's, copied code without attribution, and missing required notices.
+- Run {{TEST_COMMAND}} and the project's lint and type checks after the fixes; all must pass before you commit.
+- Report with the Scope rule's headings, grouping **Changed** by pass with each change's path and a one-line reason. Put licensing concerns and unfixed findings, with the reason, under **Not done**.
+- Then commit and push; asking for the review is the request to do so unless the user says otherwise. Follow the Git rule, split the work into focused commits, and push to the current branch's upstream. If the push is rejected, stop and report; never force-push.

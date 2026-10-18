@@ -504,18 +504,77 @@ export async function hasExtraBlock(
   return text !== null && findExtraBlock(text, markers) !== null;
 }
 
-/** Writes or replaces an extra block; `body` goes between the two markers. */
+/** An extra block that must not be present when another one is written. */
+export type ExtraBlockConflict = {
+  markers: ExtraBlockMarkers;
+  /** Error message thrown when the conflicting block is present. */
+  message: string;
+};
+
+/**
+ * Writes or replaces an extra block; `body` goes between the two markers.
+ * Throws without writing when any `conflicts` block is present; the check runs
+ * inside the mutation queue so a concurrent enable cannot slip past it.
+ */
 export async function writeExtraBlockInAgentsMd(
   workspaceRoot: string,
   markers: ExtraBlockMarkers,
-  body: string
+  body: string,
+  conflicts: readonly ExtraBlockConflict[] = []
 ): Promise<{ created: boolean }> {
   return withWorkspaceMutation(workspaceRoot, async () => {
     const text = await readAgentsMd(workspaceRoot);
+    for (const conflict of conflicts) {
+      if (text !== null && findExtraBlock(text, conflict.markers) !== null) {
+        throw new Error(conflict.message);
+      }
+    }
     const found = text === null ? null : findExtraBlock(text, markers);
     const block = `${markers.start}\n\n${body.trim()}\n\n${markers.end}\n`;
     await writeAgentsMd(workspaceRoot, composeFile(text, found, block));
     return { created: text === null };
+  });
+}
+
+/**
+ * Removes every `remove` block and then, when `write` is given, writes or
+ * replaces that block, all in one queued read-modify-write so no other
+ * operation sees the file in between. Damaged markers fail before anything is
+ * written. With no `write`, an emptied file is deleted under the rule pack's
+ * removal rules.
+ */
+export async function replaceExtraBlocksInAgentsMd(
+  workspaceRoot: string,
+  remove: readonly ExtraBlockMarkers[],
+  write: { markers: ExtraBlockMarkers; body: string } | null
+): Promise<{ removed: ExtraBlockMarkers[]; created: boolean; deletedFile: boolean }> {
+  return withWorkspaceMutation(workspaceRoot, async () => {
+    const original = await readAgentsMd(workspaceRoot);
+    let text = original;
+    const removed: ExtraBlockMarkers[] = [];
+    for (const markers of remove) {
+      const found = text === null ? null : findExtraBlock(text, markers);
+      if (!found) {
+        continue;
+      }
+      removed.push(markers);
+      // Rejoin without the block, matching how a single removal joins the halves.
+      const before = found.before.trimEnd();
+      const after = found.after.replace(/^(\r?\n)+/, "");
+      text = [before, after].filter((part) => part.trim() !== "").join("\n\n");
+      text = text === "" ? "" : `${text.replace(/\n*$/, "")}\n`;
+    }
+    if (write) {
+      const found = text === null ? null : findExtraBlock(text, write.markers);
+      const block = `${write.markers.start}\n\n${write.body.trim()}\n\n${write.markers.end}\n`;
+      await writeAgentsMd(workspaceRoot, composeFile(text, found, block));
+      return { removed, created: original === null, deletedFile: false };
+    }
+    if (removed.length === 0 || text === null) {
+      return { removed, created: false, deletedFile: false };
+    }
+    const { deletedFile } = await writeRemainderOrDelete(workspaceRoot, text, "");
+    return { removed, created: false, deletedFile };
   });
 }
 
