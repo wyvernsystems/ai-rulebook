@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-10-18
+
 ### Added
 
 - A seventh rule, `review.mdc` (Review). It applies only when you explicitly
