@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.4.1] - 2026-10-18
+
+### Changed
+
+- The license copyright holder is now Wyvern Systems LLC. The license is
+  still MIT.
+- The extension manifest lists Ron Picard (<https://wyvernsystems.com>) as
+  the author, and the README credits Wyvern Systems.
+
 ## [4.4.0] - 2026-10-18
 
 ### Added
