@@ -3,6 +3,10 @@
   "displayName": "AI Rulebook: AGENTS.md Rules for Coding Agents",
   "description": "Manage AGENTS.md rules (with a CLAUDE.md import) for AI coding agents in Cursor, Claude Code, GitHub Copilot, Cline, Windsurf, opencode, and Codex: toggle rules, switch agent modes, and run an on-request code review.",
   "version": "4.4.0",
+  "author": {
+    "name": "Ron Picard",
+    "url": "https://wyvernsystems.com"
+  },
   "publisher": "WyvernSystemsLLC",
   "license": "MIT",
   "icon": "icon.png",

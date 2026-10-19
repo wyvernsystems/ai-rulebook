@@ -466,3 +466,5 @@ install and the token-efficient subagent mode block.
 ## License
 
 [MIT](./LICENSE)
+
+Built by Ron Picard at [Wyvern Systems](https://wyvernsystems.com).
