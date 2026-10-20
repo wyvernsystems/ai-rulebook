@@ -12,6 +12,8 @@ GitHub Copilot features. Support depends on the tool and its settings; see
 [Per-tool notes](#per-tool-notes). Claude Code reads `CLAUDE.md`, so the
 extension adds a one-line `@AGENTS.md` import there.
 
+Product page: [wyvernsystems.com/products/ai-rulebook](https://wyvernsystems.com/products/ai-rulebook/).
+
 ## Get the extension
 
 Version 4.0.0 moves the rule pack into `AGENTS.md`. Releases through 3.1.0

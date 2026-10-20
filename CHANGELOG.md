@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The extension's homepage link on the VS Marketplace and Open VSX now opens
+  its product page,
+  [wyvernsystems.com/products/ai-rulebook](https://wyvernsystems.com/products/ai-rulebook/),
+  instead of the GitHub README, and the README links there too. Issues and
+  the source repository stay on GitHub.
+
 ## [4.4.2] - 2026-10-20
 
 ### Changed
