@@ -2,7 +2,7 @@
   "name": "ai-rulebook",
   "displayName": "AI Rulebook: AGENTS.md Rules for Coding Agents",
   "description": "Manage AGENTS.md rules (with a CLAUDE.md import) for AI coding agents in Cursor, Claude Code, GitHub Copilot, Cline, Windsurf, opencode, and Codex: toggle rules, switch agent modes, and run an on-request code review.",
-  "version": "4.4.1",
+  "version": "4.4.2",
   "author": {
     "name": "Ron Picard",
     "url": "https://wyvernsystems.com"
@@ -10,13 +10,13 @@
   "publisher": "WyvernSystemsLLC",
   "license": "MIT",
   "icon": "icon.png",
-  "homepage": "https://github.com/wyvernsystems/ai-rulebook-vscode-extension#readme",
+  "homepage": "https://github.com/wyvernsystems/ai-rulebook#readme",
   "bugs": {
-    "url": "https://github.com/wyvernsystems/ai-rulebook-vscode-extension/issues"
+    "url": "https://github.com/wyvernsystems/ai-rulebook/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/wyvernsystems/ai-rulebook-vscode-extension.git"
+    "url": "https://github.com/wyvernsystems/ai-rulebook.git"
   },
   "keywords": [
     "agents-md",

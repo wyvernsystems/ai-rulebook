@@ -26,7 +26,7 @@ Distribution channels are:
   `WyvernSystemsLLC.ai-rulebook` instead.
 - The Visual Studio Marketplace — search for **AI Rulebook** in stock VS
   Code, when the version you need has been published there.
-- [GitHub releases](https://github.com/wyvernsystems/ai-rulebook-vscode-extension/releases)
+- [GitHub releases](https://github.com/wyvernsystems/ai-rulebook/releases)
   — download an attached `ai-rulebook-X.Y.Z.vsix` for manual installation
   (`code --install-extension ai-rulebook-X.Y.Z.vsix`, or Extensions panel →
   `...` → **Install from VSIX...**). Release assets vary by version; older
@@ -307,7 +307,7 @@ existing file or append a second managed block. For Claude Code, create
 **Install**
 
 Search for **AI Rulebook** in the Extensions panel, or install the VSIX from
-a [GitHub release](https://github.com/wyvernsystems/ai-rulebook-vscode-extension/releases)
+a [GitHub release](https://github.com/wyvernsystems/ai-rulebook/releases)
 — see [Get the extension](#get-the-extension). To build it yourself:
 `npm ci && npm test && npm run package` (see [Development](#development)
 for prerequisites).

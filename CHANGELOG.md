@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.4.2] - 2026-10-20
+
+### Changed
+
+- The GitHub repository is renamed to
+  [`wyvernsystems/ai-rulebook`](https://github.com/wyvernsystems/ai-rulebook),
+  and the extension's homepage, issues, and repository links point there. Old
+  `ai-rulebook-vscode-extension` URLs redirect. The extension ID
+  `WyvernSystemsLLC.ai-rulebook`, commands, and settings are unchanged.
+
 ## [4.4.1] - 2026-10-18
 
 ### Changed
