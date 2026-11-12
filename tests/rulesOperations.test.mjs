@@ -36,11 +36,11 @@ const LEGACY_FOLDERS = [
 ];
 
 describe("pathExists", () => {
-  test("reports filesystem errors instead of treating them as missing paths", async () => {
+  test("AUTO-7, LEGACY-3: reports filesystem errors instead of treating them as missing paths", async () => {
     await assert.rejects(pathExists("invalid\0path"), /Failed to check path/);
   });
 
-  test("distinguishes present vs missing", async () => {
+  test("AUTO-7, LEGACY-3: distinguishes present vs missing", async () => {
     const dir = await makeTempRoot("airules-exists-");
     const file = path.join(dir, "x.txt");
     try {
@@ -54,7 +54,7 @@ describe("pathExists", () => {
 });
 
 describe("stripCursorFrontmatter", () => {
-  test("removes the frontmatter block and keeps the body", () => {
+  test("PACK-4: removes the frontmatter block and keeps the body", () => {
     const body = "---\ndescription: Task scope\nalwaysApply: true\n---\n\n# Scope\n\n- Change only what the task requires.\n";
     assert.equal(
       stripCursorFrontmatter(body),
@@ -62,23 +62,23 @@ describe("stripCursorFrontmatter", () => {
     );
   });
 
-  test("normalizes CRLF line endings inside a stripped body", () => {
+  test("PACK-4: normalizes CRLF line endings inside a stripped body", () => {
     const body = "---\r\ndescription: x\r\n---\r\nBody\r\n";
     assert.equal(stripCursorFrontmatter(body), "Body\n");
   });
 
-  test("returns the body unchanged without frontmatter", () => {
+  test("PACK-4: returns the body unchanged without frontmatter", () => {
     assert.equal(stripCursorFrontmatter("# Scope\n"), "# Scope\n");
   });
 
-  test("returns the body unchanged when the frontmatter block is unterminated", () => {
+  test("PACK-4: returns the body unchanged when the frontmatter block is unterminated", () => {
     const body = "---\ndescription: x\n# Scope\n";
     assert.equal(stripCursorFrontmatter(body), body);
   });
 });
 
 describe("workspaceShowsAgentEvidence", () => {
-  test("is false for a workspace with no agent files", async () => {
+  test("AUTO-1: is false for a workspace with no agent files", async () => {
     const root = await makeTempRoot("airules-evidence-none-");
     try {
       await writeFile(path.join(root, "README.md"), "# hi\n");
@@ -88,7 +88,7 @@ describe("workspaceShowsAgentEvidence", () => {
     }
   });
 
-  test("recognizes every supported tool's files and folders", async () => {
+  test("AUTO-1: recognizes every supported tool's files and folders", async () => {
     const evidence = [
       ["AGENTS.md", "file"],
       ["CLAUDE.md", "file"],
@@ -122,7 +122,7 @@ describe("workspaceShowsAgentEvidence", () => {
 });
 
 describe("legacy per-tool rule folders", () => {
-  test("removeCursorRules deletes only the Cursor rules folder", async () => {
+  test("LEGACY-1: removeCursorRules deletes only the Cursor rules folder", async () => {
     const workspace = await makeTempRoot("airules-remove-cursor-");
     try {
       await writeFile(path.join(workspace, ".cursor", "rules", "ai-rules", "code.mdc"), "on\n");
@@ -140,7 +140,7 @@ describe("legacy per-tool rule folders", () => {
     }
   });
 
-  test("removeLegacyRuleFolders deletes every folder that exists plus the opencode command file", async () => {
+  test("LEGACY-1: removeLegacyRuleFolders deletes every folder that exists plus the opencode command file", async () => {
     const workspace = await makeTempRoot("airules-remove-all-");
     try {
       for (const segments of LEGACY_FOLDERS) {
@@ -171,7 +171,7 @@ describe("legacy per-tool rule folders", () => {
     }
   });
 
-  test("individual remove helpers no-op when the folder is absent", async () => {
+  test("LEGACY-1: individual remove helpers no-op when the folder is absent", async () => {
     const workspace = await makeTempRoot("airules-remove-missing-");
     try {
       assert.equal(await removeCursorRules(workspace), false);

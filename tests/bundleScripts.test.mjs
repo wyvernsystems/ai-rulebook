@@ -27,7 +27,7 @@ async function withBundle(run) {
   }
 }
 
-test("build-standalone.mjs validates the manifest before writing output", async () => {
+test("BUNDLE-5: build-standalone.mjs validates the manifest before writing output", async () => {
   await withBundle(async (root) => {
     await fs.cp(new URL("../out/", import.meta.url), path.join(root, "out"), { recursive: true });
     await fs.writeFile(path.join(root, "bundled", "manifest.json"),
@@ -40,7 +40,7 @@ test("build-standalone.mjs validates the manifest before writing output", async 
 });
 
 for (const script of ["sync-bundled.mjs", "verify-bundled.mjs"]) {
-  test(`${script} accepts a bundle containing only .mdc rules`, async () => {
+  test(`BUNDLE-3: ${script} accepts a bundle containing only .mdc rules`, async () => {
     await withBundle(async (root) => {
       const result = spawnSync(process.execPath, [path.join(root, "scripts", script)], { encoding: "utf8" });
       assert.equal(result.status, 0, result.stderr);
@@ -50,7 +50,7 @@ for (const script of ["sync-bundled.mjs", "verify-bundled.mjs"]) {
   });
 
   for (const filename of ["docs.mdc.disabled", "notes.md"]) {
-    test(`${script} rejects unsupported bundle file ${filename}`, async () => {
+    test(`BUNDLE-3: ${script} rejects unsupported bundle file ${filename}`, async () => {
       await withBundle(async (root) => {
         await fs.copyFile(path.join(root, "bundled", "ai-rules", "code.mdc"),
           path.join(root, "bundled", "ai-rules", filename));
@@ -76,7 +76,7 @@ for (const folder of ["subagent-mode", "parallel-mode"]) {
     ["an unexpected file", (dir) => fs.writeFile(path.join(dir, "extra.md"), "x\n"),
       new RegExp(`unexpected file in bundled/${folder}: extra\\.md`)],
   ]) {
-    test(`verify-bundled.mjs rejects a ${modeLabel} bundle with ${label}`, async () => {
+    test(`BUNDLE-2: verify-bundled.mjs rejects a ${modeLabel} bundle with ${label}`, async () => {
       await withBundle(async (root) => {
         await damage(path.join(root, "bundled", folder));
         const result = spawnSync(process.execPath, [path.join(root, "scripts", "verify-bundled.mjs")], { encoding: "utf8" });
@@ -86,3 +86,23 @@ for (const folder of ["subagent-mode", "parallel-mode"]) {
     });
   }
 }
+
+test("BUNDLE-4: sync-bundled.mjs then build-standalone.mjs write the manifest and both standalone files", async () => {
+  await withBundle(async (root) => {
+    await fs.cp(new URL("../out/", import.meta.url), path.join(root, "out"), { recursive: true });
+    await fs.writeFile(path.join(root, "bundled", "ai-rules", "tests.mdc"),
+      "---\ndescription: Tests\n---\n\n# Tests\n\n- Run {{TEST_COMMAND}}.\n");
+    for (const script of ["sync-bundled.mjs", "build-standalone.mjs"]) {
+      const result = spawnSync(process.execPath, [path.join(root, "scripts", script)], { encoding: "utf8" });
+      assert.equal(result.status, 0, `${script}: ${result.stderr}`);
+    }
+    assert.deepEqual(JSON.parse(await fs.readFile(path.join(root, "bundled", "manifest.json"), "utf8")),
+      { version: 1, files: ["code.mdc", "tests.mdc"] });
+    const agents = await fs.readFile(path.join(root, "bundled", "standalone", "AGENTS.md"), "utf8");
+    assert.match(agents, /<!-- ai-rulebook:start -->[\s\S]*- Reuse helpers\.[\s\S]*<!-- ai-rulebook:end -->/);
+    assert.match(agents, /- Run the project's test command\./);
+    assert.doesNotMatch(agents, /\{\{TEST_COMMAND\}\}/);
+    assert.match(await fs.readFile(path.join(root, "bundled", "standalone", "README.md"), "utf8"),
+      /^# Standalone rule pack\n/);
+  });
+});

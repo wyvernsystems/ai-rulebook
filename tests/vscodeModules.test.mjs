@@ -109,35 +109,35 @@ function tempWorkspaces(t, count) {
 }
 
 describe("Cursor host detection", () => {
-  test("isCursorHost returns true when the URI scheme is cursor", () => {
+  test("AUTO-2: isCursorHost returns true when the URI scheme is cursor", () => {
     vscode.env.uriScheme = "cursor";
 
     assert.equal(cursor.isCursorHost(), true);
   });
 
-  test("isCursorHost matches Cursor in the application name case-insensitively", () => {
+  test("AUTO-2: isCursorHost matches Cursor in the application name case-insensitively", () => {
     vscode.env.appName = "CURSOR - Insiders";
 
     assert.equal(cursor.isCursorHost(), true);
   });
 
-  test("isCursorHost returns false for a non-Cursor host", () => {
+  test("AUTO-2: isCursorHost returns false for a non-Cursor host", () => {
     assert.equal(cursor.isCursorHost(), false);
   });
 });
 
 describe("Cline detection", () => {
-  test("isClineInstalled returns false when neither extension is installed", () => {
+  test("AUTO-2: isClineInstalled returns false when neither extension is installed", () => {
     assert.equal(cline.isClineInstalled(), false);
   });
 
-  test("isClineInstalled recognizes the stable extension", () => {
+  test("AUTO-2: isClineInstalled recognizes the stable extension", () => {
     state.installedExtensions.add("saoudrizwan.claude-dev");
 
     assert.equal(cline.isClineInstalled(), true);
   });
 
-  test("isClineInstalled recognizes the nightly extension", () => {
+  test("AUTO-2: isClineInstalled recognizes the nightly extension", () => {
     state.installedExtensions.add("saoudrizwan.cline-nightly");
 
     assert.equal(cline.isClineInstalled(), true);
@@ -145,7 +145,7 @@ describe("Cline detection", () => {
 });
 
 describe("RuleStatusDecorationProvider", () => {
-  test("colors on and off rule URIs and ignores other schemes", () => {
+  test("UI-1: colors on and off rule URIs and ignores other schemes", () => {
     const provider = new sidebarTreeView.RuleStatusDecorationProvider();
 
     const on = provider.provideFileDecoration(
@@ -163,7 +163,7 @@ describe("RuleStatusDecorationProvider", () => {
 });
 
 describe("RulesTreeProvider", () => {
-  test("getChildren lists every topic rule", async () => {
+  test("UI-1: getChildren lists every topic rule", async () => {
     workspace.workspaceFolders = [{ uri: Uri.file("/workspace") }];
     const provider = new sidebarTreeView.RulesTreeProvider(RULE_FILES);
 
@@ -175,7 +175,7 @@ describe("RulesTreeProvider", () => {
     assert.deepEqual(await provider.getChildren(rules[0]), []);
   });
 
-  test("getTreeItem reflects the rule's state in AGENTS.md and the reveal command", async (t) => {
+  test("UI-1, UI-2: getTreeItem reflects the rule's state in AGENTS.md and the reveal command", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await installPack(root);
@@ -196,7 +196,7 @@ describe("RulesTreeProvider", () => {
     assert.equal(off.resourceUri.path, "/off/git.mdc");
   });
 
-  test("getTreeItem reports a rule as off when no workspace is open", async () => {
+  test("UI-1: getTreeItem reports a rule as off when no workspace is open", async () => {
     const provider = new sidebarTreeView.RulesTreeProvider(RULE_FILES);
 
     const item = await provider.getTreeItem({ kind: "rule", ruleFile: SAMPLE_RULE });
@@ -205,7 +205,7 @@ describe("RulesTreeProvider", () => {
     assert.equal(item.checkboxState, TreeItemCheckboxState.Unchecked);
   });
 
-  test("getTreeItem exposes a damaged block without claiming the rule is disabled", async (t) => {
+  test("UI-3: getTreeItem exposes a damaged block without claiming the rule is disabled", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await writeFile(path.join(root, "AGENTS.md"), agentsMd.AGENTS_MD_BLOCK_START + "\n");
@@ -237,7 +237,7 @@ describe("RulesTreeProvider", () => {
 describe("bindRulesTreeView", () => {
   const ruleNode = { kind: "rule", ruleFile: SAMPLE_RULE };
 
-  test("checkbox changes show a warning and restore the tree when no workspace is open", async () => {
+  test("UI-1: checkbox changes show a warning and restore the tree when no workspace is open", async () => {
     const provider = new sidebarTreeView.RulesTreeProvider(RULE_FILES);
     const refreshEvents = [];
     provider.onDidChangeTreeData((value) => refreshEvents.push(value));
@@ -264,7 +264,7 @@ describe("bindRulesTreeView", () => {
     assert.deepEqual(context.subscriptions, [view]);
   });
 
-  test("checkbox changes warn when AGENTS.md has no rule pack yet", async (t) => {
+  test("PACK-12, UI-1: checkbox changes warn when AGENTS.md has no rule pack yet", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await writeFile(path.join(root, "AGENTS.md"), "# project\n");
@@ -286,7 +286,7 @@ describe("bindRulesTreeView", () => {
     assert.equal(await fs.readFile(path.join(root, "AGENTS.md"), "utf8"), "# project\n");
   });
 
-  test("checkbox changes hand the toggle to the caller, then refresh", async (t) => {
+  test("UI-1: checkbox changes hand the toggle to the caller, then refresh", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await installPack(root);
@@ -311,7 +311,7 @@ describe("bindRulesTreeView", () => {
     assert.deepEqual(state.errors, []);
   });
 
-  test("a failing toggle is reported as an error and the tree still refreshes", async (t) => {
+  test("UI-1: a failing toggle is reported as an error and the tree still refreshes", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await installPack(root);
@@ -342,7 +342,7 @@ describe("rule status UI", () => {
     assert.equal(channel.name, "AI Rulebook");
   });
 
-  test("showRulePackStatusInOutput reports rule states without ANSI escapes", async (t) => {
+  test("UI-8: showRulePackStatusInOutput reports rule states without ANSI escapes", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     const channel = ruleStatusUi.createAiRulesOutputChannel();
@@ -360,7 +360,7 @@ describe("rule status UI", () => {
 });
 
 describe("extension activation", () => {
-  test("activate reports a manifest error and stops before registration", async (t) => {
+  test("BUNDLE-5: activate reports a manifest error and stops before registration", async (t) => {
     const [emptyExtensionRoot] = await tempWorkspaces(t, 1);
     const { context, values } = makeExtensionContext(emptyExtensionRoot);
 
@@ -391,7 +391,7 @@ describe("extension activation", () => {
     assert.equal(state.statusBarItems[0].text, "$(checklist) AI Rulebook");
   });
 
-  test("activate installs into a workspace that already has an AGENTS.md", async (t) => {
+  test("AUTO-1: activate installs into a workspace that already has an AGENTS.md", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await writeFile(path.join(root, "AGENTS.md"), "# My project\n\nUse tabs.\n");
@@ -414,7 +414,7 @@ describe("extension activation", () => {
     assert.match(state.statusBarItems[0].text, /AI 7\/7/);
   });
 
-  test("activate installs on a Cursor host even without agent files", async (t) => {
+  test("AUTO-2: activate installs on a Cursor host even without agent files", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     vscode.env.uriScheme = "cursor";
@@ -427,7 +427,7 @@ describe("extension activation", () => {
     assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(root)), true);
   });
 
-  test("activate installs when Cline is installed even without agent files", async (t) => {
+  test("AUTO-2: activate installs when Cline is installed even without agent files", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     state.installedExtensions.add("saoudrizwan.claude-dev");
@@ -438,7 +438,7 @@ describe("extension activation", () => {
     assert.equal(await agentsMd.hasRulesBlock(root), true);
   });
 
-  test("activate skips a workspace with no agent evidence and shows a one-time hint", async (t) => {
+  test("AUTO-1, AUTO-4: activate skips a workspace with no agent evidence and shows a one-time hint", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await writeFile(path.join(root, "README.md"), "# hi\n");
@@ -460,7 +460,7 @@ describe("extension activation", () => {
     assert.deepEqual(state.informationMessages, [], "the hint is shown once per machine");
   });
 
-  test("activate honors aiRules.autoInstallOnOpenWorkspace = false", async (t) => {
+  test("AUTO-1: activate honors aiRules.autoInstallOnOpenWorkspace = false", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await writeFile(path.join(root, "AGENTS.md"), "# project\n");
@@ -473,7 +473,7 @@ describe("extension activation", () => {
     assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(root)), false);
   });
 
-  test("activate leaves an installed block alone, including disabled rules", async (t) => {
+  test("AUTO-3: activate leaves an installed block alone, including disabled rules", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     await installPack(root, "make test");
@@ -488,7 +488,7 @@ describe("extension activation", () => {
     assert.equal(await rulesOperations.pathExists(claudeMd.claudeMdPath(root)), false);
   });
 
-  test("activate reports a damaged block instead of throwing", async (t) => {
+  test("AUTO-5, PACK-11: activate reports a damaged block instead of throwing", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     const damaged = "# p\n\n" + agentsMd.AGENTS_MD_BLOCK_START + "\n";
@@ -517,7 +517,7 @@ describe("extension activation", () => {
 });
 
 describe("install command", () => {
-  test("installWorkspace writes AGENTS.md and CLAUDE.md into every open folder", async (t) => {
+  test("PACK-1, PACK-3, PACK-9: installWorkspace writes AGENTS.md and CLAUDE.md into every open folder", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await writeFile(path.join(roots[1], "CLAUDE.md"), "# Notes\n");
     await writeFile(path.join(roots[1], "Cargo.toml"), "[package]\n");
@@ -542,7 +542,20 @@ describe("install command", () => {
     assert.match(state.statusBarItems[0].text, /AI 7\/7/);
   });
 
-  test("installWorkspace keeps a disabled rule disabled while refreshing the text", async (t) => {
+  test("PACK-10: installWorkspace leaves .gitignore alone, whether or not it exists", async (t) => {
+    const roots = await tempWorkspaces(t, 2);
+    const gitignore = "node_modules/\n*.md\n";
+    await writeFile(path.join(roots[0], ".gitignore"), gitignore);
+    await activateIn(roots);
+
+    await state.registeredCommands.get("aiRules.installWorkspace")();
+
+    assert.equal(await agentsMd.hasRulesBlock(roots[0]), true);
+    assert.equal(await fs.readFile(path.join(roots[0], ".gitignore"), "utf8"), gitignore);
+    assert.equal(await rulesOperations.pathExists(path.join(roots[1], ".gitignore")), false);
+  });
+
+  test("PACK-8: installWorkspace keeps a disabled rule disabled while refreshing the text", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root, "old test");
     await agentsMd.setRuleEnabledInAgentsMd(root, bundleDir, "git.mdc", false, "old test");
@@ -559,7 +572,7 @@ describe("install command", () => {
 });
 
 describe("rule toggle commands", () => {
-  test("workspace pack commands disable and enable every topic rule", async (t) => {
+  test("UI-5: workspace pack commands disable and enable every topic rule", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -579,7 +592,7 @@ describe("rule toggle commands", () => {
     assert.match(state.statusBarItems[0].text, /AI 7\/7/);
   });
 
-  test("individual commands change only the selected topic rule", async (t) => {
+  test("UI-5: individual commands change only the selected topic rule", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -596,7 +609,7 @@ describe("rule toggle commands", () => {
     assert.equal(await agentsMd.isRuleEnabledInAgentsMd(root, SAMPLE_RULE), true);
   });
 
-  test("toggles apply to the first workspace folder only", async (t) => {
+  test("UI-5: toggles apply to the first workspace folder only", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     for (const root of roots) {
       await installPack(root);
@@ -610,7 +623,7 @@ describe("rule toggle commands", () => {
     assert.equal(await agentsMd.isRuleEnabledInAgentsMd(roots[1], SAMPLE_RULE), true);
   });
 
-  test("the sidebar checkbox edits the rule's section in AGENTS.md", async (t) => {
+  test("UI-1: the sidebar checkbox edits the rule's section in AGENTS.md", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -635,7 +648,7 @@ describe("rule toggles without an installed rule pack", () => {
     return root;
   }
 
-  test("enableCoreWorkspace reports the missing rule pack instead of a false success", async (t) => {
+  test("PACK-12: enableCoreWorkspace reports the missing rule pack instead of a false success", async (t) => {
     const root = await activateWithoutRules(t);
     state.informationMessages = [];
 
@@ -649,7 +662,7 @@ describe("rule toggles without an installed rule pack", () => {
     assert.equal(await readAgentsMd(root), "# project\n");
   });
 
-  test("disableRuleWorkspace reports the missing rule pack instead of a false success", async (t) => {
+  test("PACK-12: disableRuleWorkspace reports the missing rule pack instead of a false success", async (t) => {
     await activateWithoutRules(t);
     state.quickPickSelection = SAMPLE_RULE;
     state.informationMessages = [];
@@ -663,7 +676,7 @@ describe("rule toggles without an installed rule pack", () => {
     assert.deepEqual(state.informationMessages, []);
   });
 
-  test("sidebar checkbox toggles warn instead of silently doing nothing", async (t) => {
+  test("PACK-12, UI-1: sidebar checkbox toggles warn instead of silently doing nothing", async (t) => {
     const root = await activateWithoutRules(t);
     const view = state.treeViews[0];
 
@@ -680,7 +693,7 @@ describe("rule toggles without an installed rule pack", () => {
 });
 
 describe("remove commands", () => {
-  test("a declined confirmation leaves the rule pack in place", async (t) => {
+  test("PACK-13: a declined confirmation leaves the rule pack in place", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -692,7 +705,7 @@ describe("remove commands", () => {
     assert.ok(state.warningRequests[0].modal);
   });
 
-  test("removeWorkspace clears the block in every folder and deletes files it created", async (t) => {
+  test("PACK-13: removeWorkspace clears the block in every folder and deletes files it created", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await writeFile(path.join(roots[1], "AGENTS.md"), "# Mine\n");
     await writeFile(path.join(roots[1], "CLAUDE.md"), "# Notes\n");
@@ -714,7 +727,7 @@ describe("remove commands", () => {
     assert.equal(state.statusBarItems[0].text, "$(checklist) AI 0/7");
   });
 
-  test("removeLegacyFoldersWorkspace deletes the per-tool folders from every folder", async (t) => {
+  test("LEGACY-1: removeLegacyFoldersWorkspace deletes the per-tool folders from every folder", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     for (const root of roots) {
       await writeFile(path.join(root, ".cursor", "rules", "ai-rules", "code.mdc"), "x\n");
@@ -741,7 +754,7 @@ describe("remove commands", () => {
 });
 
 describe("status and reveal commands", () => {
-  test("showCoreStatus focuses the sidebar and reports rule state", async (t) => {
+  test("UI-8: showCoreStatus focuses the sidebar and reports rule state", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -756,14 +769,14 @@ describe("status and reveal commands", () => {
     assert.deepEqual(state.errors, []);
   });
 
-  test("the status bar opens the status command", async (t) => {
+  test("UI-8: the status bar opens the status command", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
     assert.equal(state.statusBarItems[0].command, "aiRules.showCoreStatus");
   });
 
-  test("revealRuleFile opens AGENTS.md at the rule's section", async (t) => {
+  test("UI-2: revealRuleFile opens AGENTS.md at the rule's section", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -777,7 +790,7 @@ describe("status and reveal commands", () => {
     assert.equal(state.shownDocuments[0].options.preview, true);
   });
 
-  test("revealRuleFile warns when the pack is not installed and ignores bad input", async (t) => {
+  test("UI-2: revealRuleFile warns when the pack is not installed and ignores bad input", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -794,7 +807,7 @@ describe("subagent mode commands", () => {
   const enableCommand = () => state.registeredCommands.get("aiRules.enableSubagentMode")();
   const disableCommand = () => state.registeredCommands.get("aiRules.disableSubagentMode")();
 
-  test("installing the rule pack leaves the mode off", async (t) => {
+  test("MODE-1: installing the rule pack leaves the mode off", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -805,7 +818,7 @@ describe("subagent mode commands", () => {
     assert.ok(state.outputChannels[0].lines.includes("token-efficient subagent mode: off"));
   });
 
-  test("enableSubagentMode writes only AGENTS.md and the CLAUDE.md import, in every open folder", async (t) => {
+  test("MODE-2, MODE-3, MODE-4: enableSubagentMode writes only AGENTS.md and the CLAUDE.md import, in every open folder", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await writeFile(path.join(roots[1], "package.json"), JSON.stringify({ scripts: { test: "node --test" } }));
     await activateIn(roots);
@@ -827,7 +840,7 @@ describe("subagent mode commands", () => {
     assert.ok(state.outputChannels[0].lines.includes("token-efficient subagent mode: on"));
   });
 
-  test("disableSubagentMode removes the mode, keeps the rule pack, and cleans up files it created", async (t) => {
+  test("MODE-2, MODE-5: disableSubagentMode removes the mode, keeps the rule pack, and cleans up files it created", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn(roots);
     await state.registeredCommands.get("aiRules.installWorkspace")();
@@ -845,7 +858,7 @@ describe("subagent mode commands", () => {
     assert.equal(state.statusBarItems[0].text, "$(checklist) AI 7/7", "rule toggles are untouched");
   });
 
-  test("the rule pack's enable-all and remove commands never touch the mode", async (t) => {
+  test("MODE-1: the rule pack's enable-all and remove commands never touch the mode", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
     await state.registeredCommands.get("aiRules.installWorkspace")();
@@ -860,7 +873,7 @@ describe("subagent mode commands", () => {
     assert.equal(await subagentMode.isSubagentModeEnabled(root), true, "removing the pack leaves the mode on");
   });
 
-  test("disableSubagentMode reports when there was nothing to remove", async (t) => {
+  test("MODE-5: disableSubagentMode reports when there was nothing to remove", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -870,7 +883,7 @@ describe("subagent mode commands", () => {
     assert.deepEqual(await fs.readdir(root), []);
   });
 
-  test("a damaged mode block is reported, not rewritten", async (t) => {
+  test("MODE-5: a damaged mode block is reported, not rewritten", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     const damaged = "# Mine\n\n<!-- ai-rulebook:subagent-mode:start -->\n";
     await writeFile(path.join(root, "AGENTS.md"), damaged);
@@ -890,7 +903,7 @@ describe("fast parallel agent mode commands", () => {
   const enableSubagentIn = (root) =>
     subagentMode.enableSubagentMode(root, path.join(repoRoot, "bundled", "subagent-mode"), null);
 
-  test("the mode is off until enabled and status reports both modes", async (t) => {
+  test("MODE-6: the mode is off until enabled and status reports both modes", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -903,7 +916,7 @@ describe("fast parallel agent mode commands", () => {
     assert.ok(lines.includes("token-efficient subagent mode: off"));
   });
 
-  test("enableParallelMode writes only AGENTS.md and the CLAUDE.md import, in every open folder", async (t) => {
+  test("MODE-2, MODE-3, MODE-4: enableParallelMode writes only AGENTS.md and the CLAUDE.md import, in every open folder", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn(roots);
 
@@ -926,7 +939,7 @@ describe("fast parallel agent mode commands", () => {
     assert.ok(lines.includes("token-efficient subagent mode: off"));
   });
 
-  test("disableParallelMode removes the mode, keeps the rule pack, and cleans up files it created", async (t) => {
+  test("MODE-2, MODE-5: disableParallelMode removes the mode, keeps the rule pack, and cleans up files it created", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn(roots);
     await state.registeredCommands.get("aiRules.installWorkspace")();
@@ -947,7 +960,7 @@ describe("fast parallel agent mode commands", () => {
     assert.equal(state.statusBarItems[0].text, "$(checklist) AI 7/7", "rule toggles are untouched");
   });
 
-  test("disableParallelMode reports when there was nothing to remove", async (t) => {
+  test("MODE-5: disableParallelMode reports when there was nothing to remove", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -957,7 +970,7 @@ describe("fast parallel agent mode commands", () => {
     assert.deepEqual(await fs.readdir(root), []);
   });
 
-  test("enableParallelMode refuses while subagent mode is on in any folder and writes nothing", async (t) => {
+  test("MODE-7: enableParallelMode refuses while subagent mode is on in any folder and writes nothing", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await enableSubagentIn(roots[1]);
     const before = await readAgentsMd(roots[1]);
@@ -981,7 +994,7 @@ describe("fast parallel agent mode commands", () => {
     assert.deepEqual(state.informationMessages.filter((message) => /enabled in/.test(message)), []);
   });
 
-  test("enableSubagentMode refuses while parallel mode is on and leaves subagent mode off", async (t) => {
+  test("MODE-7: enableSubagentMode refuses while parallel mode is on and leaves subagent mode off", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn(roots);
     await enableCommand();
@@ -1004,7 +1017,7 @@ describe("fast parallel agent mode commands", () => {
 });
 
 describe("update prompt", () => {
-  test("offers to refresh installed rules when the extension version changes", async (t) => {
+  test("AUTO-6: offers to refresh installed rules when the extension version changes", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
@@ -1027,7 +1040,7 @@ describe("command and UI edge cases", () => {
   });
 
   for (const files of [[], ["notes.md"]]) {
-    test(`activation rejects unusable manifest files ${JSON.stringify(files)}`, async (t) => {
+    test(`BUNDLE-5: activation rejects unusable manifest files ${JSON.stringify(files)}`, async (t) => {
       const [root] = await tempWorkspaces(t, 1);
       await writeFile(path.join(root, "bundled", "manifest.json"), JSON.stringify({ version: 1, files }));
       const { context } = makeExtensionContext(root);
@@ -1050,7 +1063,7 @@ describe("command and UI edge cases", () => {
     assert.deepEqual(state.errors, []);
   });
 
-  test("cancelling legacy cleanup preserves old rule files", async (t) => {
+  test("LEGACY-1: cancelling legacy cleanup preserves old rule files", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     const file = path.join(root, ".cursor", "rules", "ai-rules", "code.mdc");
     await writeFile(file, "old rules\n");
@@ -1060,7 +1073,7 @@ describe("command and UI edge cases", () => {
     assert.deepEqual(state.errors, []);
   });
 
-  test("removing an absent pack reports nothing removed and preserves user text", async (t) => {
+  test("PACK-13: removing an absent pack reports nothing removed and preserves user text", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await writeFile(agentsMd.agentsMdPath(root), "# Project\n");
     await activateIn([root]);
@@ -1070,7 +1083,7 @@ describe("command and UI edge cases", () => {
     assert.ok(state.informationMessages.some((message) => /nothing removed/.test(message)));
   });
 
-  test("refresh reads external changes and reports unreadable AGENTS.md", async (t) => {
+  test("UI-7: refresh reads external changes and reports unreadable AGENTS.md", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root);
     await activateIn([root]);
@@ -1084,7 +1097,7 @@ describe("command and UI edge cases", () => {
     assert.match(state.statusBarItems[0].tooltip, /Failed to read AGENTS\.md/);
   });
 
-  test("auto-install continues to the next workspace after a project-file read failure", async (t) => {
+  test("AUTO-7: auto-install continues to the next workspace after a project-file read failure", async (t) => {
     const roots = await tempWorkspaces(t, 3);
     workspace.workspaceFolders = roots.map((root) => ({ uri: Uri.file(root) }));
     vscode.env.uriScheme = "cursor";
@@ -1098,7 +1111,7 @@ describe("command and UI edge cases", () => {
     assert.ok(state.informationMessages.some((message) => /in 2 folders/.test(message)));
   });
 
-  test("accepting an update prompt refreshes rules while preserving disabled state", async (t) => {
+  test("AUTO-6, PACK-8: accepting an update prompt refreshes rules while preserving disabled state", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await installPack(root, "old test");
     await agentsMd.setRuleEnabledInAgentsMd(root, bundleDir, "git.mdc", false, null);
@@ -1114,7 +1127,7 @@ describe("command and UI edge cases", () => {
     assert.equal(values.get("aiRules.lastSeenExtensionVersion"), "1.4.0");
   });
 
-  test("disabled update prompts record the version without asking to refresh", async (t) => {
+  test("AUTO-6: disabled update prompts record the version without asking to refresh", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     workspace.workspaceFolders = [{ uri: Uri.file(root) }];
     state.configuration.set("aiRules.autoInstallOnOpenWorkspace", false);
@@ -1143,7 +1156,7 @@ describe("select agent mode command", () => {
     "",
   ].join("\n");
 
-  test("picking another mode switches in one step across folders and marks the current one", async (t) => {
+  test("MODE-8: picking another mode switches in one step across folders and marks the current one", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn(roots);
     await enableSubagent();
@@ -1176,7 +1189,7 @@ describe("select agent mode command", () => {
     );
   });
 
-  test("cancelling the picker writes nothing", async (t) => {
+  test("MODE-8: cancelling the picker writes nothing", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
     state.quickPickSelection = undefined;
@@ -1189,7 +1202,7 @@ describe("select agent mode command", () => {
     assert.deepEqual(state.informationMessages.filter((message) => /agent mode/.test(message)), []);
   });
 
-  test("off removes the mode and deletes the files it created", async (t) => {
+  test("MODE-8: off removes the mode and deletes the files it created", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
     await enableSubagent();
@@ -1203,7 +1216,7 @@ describe("select agent mode command", () => {
     );
   });
 
-  test("off reports when no agent mode was on", async (t) => {
+  test("MODE-8: off reports when no agent mode was on", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -1216,7 +1229,7 @@ describe("select agent mode command", () => {
     assert.deepEqual(await fs.readdir(root), []);
   });
 
-  test("an unknown mode id is an error", async (t) => {
+  test("MODE-8: an unknown mode id is an error", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -1226,7 +1239,7 @@ describe("select agent mode command", () => {
     assert.deepEqual(await fs.readdir(root), []);
   });
 
-  test("damaged markers in a later folder abort before any write", async (t) => {
+  test("MODE-5: damaged markers in a later folder abort before any write", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     const damaged = `# Mine\n\n${agentModes.PARALLEL_MODE.markers.start}\n`;
     await writeFile(path.join(roots[1], "AGENTS.md"), damaged);
@@ -1239,7 +1252,7 @@ describe("select agent mode command", () => {
     assert.equal(await readAgentsMd(roots[1]), damaged);
   });
 
-  test("both blocks present show a conflict everywhere and selecting a mode keeps one", async (t) => {
+  test("UI-4, UI-6, MODE-8: both blocks present show a conflict everywhere and selecting a mode keeps one", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await writeFile(agentsMd.agentsMdPath(root), BOTH_BLOCKS);
     await activateIn([root]);
@@ -1264,7 +1277,7 @@ describe("select agent mode command", () => {
     assert.ok(!bar.text.includes("modes"), bar.text);
   });
 
-  test("the status bar names the mode that is on", async (t) => {
+  test("UI-6: the status bar names the mode that is on", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
 
@@ -1275,7 +1288,7 @@ describe("select agent mode command", () => {
     assert.match(String(bar.tooltip), /Agent mode: fast parallel agent mode\./);
   });
 
-  test("the sidebar mode row shows the mode and opens the picker", async (t) => {
+  test("UI-4: the sidebar mode row shows the mode and opens the picker", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
     const provider = new sidebarTreeView.RulesTreeProvider(RULE_FILES);
@@ -1294,7 +1307,7 @@ describe("select agent mode command", () => {
 describe("AGENTS.md file watching", () => {
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  test("activation watches AGENTS.md in every folder", async (t) => {
+  test("UI-7: activation watches AGENTS.md in every folder", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn(roots);
 
@@ -1305,7 +1318,7 @@ describe("AGENTS.md file watching", () => {
     }
   });
 
-  test("a hand edit of AGENTS.md refreshes the status bar after the debounce", async (t) => {
+  test("UI-7: a hand edit of AGENTS.md refreshes the status bar after the debounce", async (t) => {
     const [root] = await tempWorkspaces(t, 1);
     await activateIn([root]);
     const bar = state.statusBarItems[0];
@@ -1321,7 +1334,7 @@ describe("AGENTS.md file watching", () => {
     assert.ok(bar.text.endsWith("· parallel"), bar.text);
   });
 
-  test("a workspace folder change replaces the watchers", async (t) => {
+  test("UI-7: a workspace folder change replaces the watchers", async (t) => {
     const roots = await tempWorkspaces(t, 2);
     await activateIn([roots[0]]);
     assert.equal(state.fileWatchers.length, 1);

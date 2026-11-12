@@ -467,7 +467,7 @@ regenerate it. It also has token-efficient subagent mode enabled; after
 editing `bundled/subagent-mode/section.md`, re-run the enable command.
 Fast parallel agent mode is not enabled here, so its block is not dogfooded.
 
-Requirements are tracked in [docs/REQUIREMENTS.md](./docs/REQUIREMENTS.md).
+Requirements are tracked per feature in [docs/requirements/](./docs/requirements/README.md).
 Cutting a release is documented in [docs/RELEASING.md](./docs/RELEASING.md).
 The repository's installed rule pack is in [AGENTS.md](./AGENTS.md); it
 contains only what the extension generates: the rule pack from a fresh

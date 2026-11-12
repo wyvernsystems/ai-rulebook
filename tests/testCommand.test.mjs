@@ -38,27 +38,27 @@ const packageJsonWithTest = JSON.stringify({
 });
 
 describe("detectTestCommand — Node", () => {
-  test("reports unreadable project files with their path", async () => {
+  test("PACK-5: reports unreadable project files with their path", async () => {
     await withRoot({}, async (root) => {
       await fs.mkdir(path.join(root, "package.json"));
       await assert.rejects(detectTestCommand(root), /Failed to read .*package\.json/);
     });
   });
 
-  test("reports lockfile access errors", async () => {
+  test("PACK-5: reports lockfile access errors", async () => {
     await withRoot({ "package.json": packageJsonWithTest }, async (root) => {
       await fs.symlink("pnpm-lock.yaml", path.join(root, "pnpm-lock.yaml"));
       await assert.rejects(detectTestCommand(root), /Failed to check path .*pnpm-lock\.yaml/);
     });
   });
 
-  test("uses npm when a test script exists with no lockfile", async () => {
+  test("PACK-5: uses npm when a test script exists with no lockfile", async () => {
     await withRoot({ "package.json": packageJsonWithTest }, async (root) => {
       assert.equal(await detectTestCommand(root), "npm test");
     });
   });
 
-  test("picks the package manager from the lockfile", async () => {
+  test("PACK-5: picks the package manager from the lockfile", async () => {
     const cases = [
       ["pnpm-lock.yaml", "pnpm test"],
       ["yarn.lock", "yarn test"],
@@ -75,7 +75,7 @@ describe("detectTestCommand — Node", () => {
     }
   });
 
-  test("ignores the npm default placeholder test script", async () => {
+  test("PACK-5: ignores the npm default placeholder test script", async () => {
     await withRoot(
       {
         "package.json": JSON.stringify({
@@ -88,13 +88,13 @@ describe("detectTestCommand — Node", () => {
     );
   });
 
-  test("ignores a package.json with no test script", async () => {
+  test("PACK-5: ignores a package.json with no test script", async () => {
     await withRoot({ "package.json": JSON.stringify({ name: "demo" }) }, async (root) => {
       assert.equal(await detectTestCommand(root), null);
     });
   });
 
-  test("ignores an unparseable package.json", async () => {
+  test("PACK-5: ignores an unparseable package.json", async () => {
     await withRoot({ "package.json": "{not json" }, async (root) => {
       assert.equal(await detectTestCommand(root), null);
     });
@@ -102,7 +102,7 @@ describe("detectTestCommand — Node", () => {
 });
 
 describe("detectTestCommand — other ecosystems", () => {
-  test("recognizes Cargo and Go projects", async () => {
+  test("PACK-5: recognizes Cargo and Go projects", async () => {
     await withRoot({ "Cargo.toml": "[package]\nname = \"demo\"\n" }, async (root) => {
       assert.equal(await detectTestCommand(root), "cargo test");
     });
@@ -111,7 +111,7 @@ describe("detectTestCommand — other ecosystems", () => {
     });
   });
 
-  test("claims pytest only with explicit pytest evidence", async () => {
+  test("PACK-5: claims pytest only with explicit pytest evidence", async () => {
     await withRoot({ "pytest.ini": "[pytest]\n" }, async (root) => {
       assert.equal(await detectTestCommand(root), "pytest");
     });
@@ -126,7 +126,7 @@ describe("detectTestCommand — other ecosystems", () => {
     });
   });
 
-  test("recognizes a Makefile test target but not an unrelated target", async () => {
+  test("PACK-5: recognizes a Makefile test target but not an unrelated target", async () => {
     await withRoot({ Makefile: "build:\n\tcc main.c\n\ntest:\n\t./run\n" }, async (root) => {
       assert.equal(await detectTestCommand(root), "make test");
     });
@@ -135,7 +135,7 @@ describe("detectTestCommand — other ecosystems", () => {
     });
   });
 
-  test("prefers the Node test script over a Makefile fallback", async () => {
+  test("PACK-5: prefers the Node test script over a Makefile fallback", async () => {
     await withRoot(
       { "package.json": packageJsonWithTest, Makefile: "test:\n\t./run\n" },
       async (root) => {
@@ -144,7 +144,7 @@ describe("detectTestCommand — other ecosystems", () => {
     );
   });
 
-  test("returns null for a project with no recognizable test setup", async () => {
+  test("PACK-5: returns null for a project with no recognizable test setup", async () => {
     await withRoot({ "README.md": "# demo\n" }, async (root) => {
       assert.equal(await detectTestCommand(root), null);
     });
@@ -154,32 +154,32 @@ describe("detectTestCommand — other ecosystems", () => {
 describe("renderRuleBody", () => {
   const body = `Run ${TEST_COMMAND_PLACEHOLDER} after every change to ${TEST_COMMAND_PLACEHOLDER}.\n`;
 
-  test("substitutes a detected command as inline code", () => {
+  test("PACK-4: substitutes a detected command as inline code", () => {
     assert.equal(
       renderRuleBody(body, "npm test"),
       "Run `npm test` after every change to `npm test`.\n"
     );
   });
 
-  test("falls back to prose when no command was detected", () => {
+  test("PACK-4: falls back to prose when no command was detected", () => {
     assert.equal(
       renderRuleBody(body, null),
       `Run ${UNKNOWN_TEST_COMMAND_TEXT} after every change to ${UNKNOWN_TEST_COMMAND_TEXT}.\n`
     );
   });
 
-  test("treats undefined like a missing command", () => {
+  test("PACK-4: treats undefined like a missing command", () => {
     assert.ok(!renderRuleBody(body, undefined).includes(TEST_COMMAND_PLACEHOLDER));
   });
 
-  test("leaves a body without placeholders untouched", () => {
+  test("PACK-4: leaves a body without placeholders untouched", () => {
     assert.equal(renderRuleBody("# Scope\n", "npm test"), "# Scope\n");
   });
 });
 
 describe("test command detection edge cases", () => {
   for (const contents of ["null", "42", '{"scripts":null}', '{"scripts":"test"}', '{"scripts":{"test":false}}', '{"scripts":{"test":"  "}}']) {
-    test(`falls back to Makefile for package.json ${contents}`, async () => {
+    test(`PACK-5: falls back to Makefile for package.json ${contents}`, async () => {
       await withRoot({ "package.json": contents, Makefile: "test:\n\t./run\n" }, async (root) => {
         assert.equal(await detectTestCommand(root), "make test");
       });
@@ -187,7 +187,7 @@ describe("test command detection edge cases", () => {
   }
 
   for (const [name, contents] of [["setup.cfg", "[tool:pytest]\n"], ["tox.ini", "[pytest]\n"]]) {
-    test(`recognizes pytest in ${name}`, async () => {
+    test(`PACK-5: recognizes pytest in ${name}`, async () => {
       await withRoot({ [name]: contents }, async (root) => {
         assert.equal(await detectTestCommand(root), "pytest");
       });

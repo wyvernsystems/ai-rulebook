@@ -23,13 +23,13 @@ async function withRoot(run) {
 }
 
 describe("claudeMdImportsAgentsMd", () => {
-  test("recognizes the import on its own line or inline in prose", () => {
+  test("PACK-9: recognizes the import on its own line or inline in prose", () => {
     assert.equal(claudeMdImportsAgentsMd("@AGENTS.md\n"), true);
     assert.equal(claudeMdImportsAgentsMd("# Project\n\nSee @AGENTS.md for the rules.\n"), true);
     assert.equal(claudeMdImportsAgentsMd("Rules: @AGENTS.md, then more.\n"), true);
   });
 
-  test("ignores the token inside code fences, inline code, and other paths", () => {
+  test("PACK-9: ignores the token inside code fences, inline code, and other paths", () => {
     assert.equal(claudeMdImportsAgentsMd("```\n@AGENTS.md\n```\n"), false);
     assert.equal(claudeMdImportsAgentsMd("~~~md\n@AGENTS.md\n~~~\n"), false);
     assert.equal(claudeMdImportsAgentsMd("Add `@AGENTS.md` to import.\n"), false);
@@ -40,14 +40,14 @@ describe("claudeMdImportsAgentsMd", () => {
 });
 
 describe("ensureAgentsMdImport", () => {
-  test("creates CLAUDE.md holding just the import", async () => {
+  test("PACK-9: creates CLAUDE.md holding just the import", async () => {
     await withRoot(async (root, file) => {
       assert.equal(await ensureAgentsMdImport(root), "created");
       assert.equal(await fs.readFile(file, "utf8"), `${AGENTS_MD_IMPORT}\n`);
     });
   });
 
-  test("appends the import to an existing CLAUDE.md that lacks it", async () => {
+  test("PACK-9: appends the import to an existing CLAUDE.md that lacks it", async () => {
     await withRoot(async (root, file) => {
       await fs.writeFile(file, "# Notes\n\nPrefer small PRs.");
 
@@ -59,7 +59,7 @@ describe("ensureAgentsMdImport", () => {
     });
   });
 
-  test("leaves a CLAUDE.md that already imports AGENTS.md untouched", async () => {
+  test("PACK-9: leaves a CLAUDE.md that already imports AGENTS.md untouched", async () => {
     await withRoot(async (root, file) => {
       const text = "Read @AGENTS.md first.\n";
       await fs.writeFile(file, text);
@@ -69,7 +69,7 @@ describe("ensureAgentsMdImport", () => {
     });
   });
 
-  test("still appends when the only mention is inside a code fence", async () => {
+  test("PACK-9: still appends when the only mention is inside a code fence", async () => {
     await withRoot(async (root, file) => {
       await fs.writeFile(file, "```\n@AGENTS.md\n```\n");
 
@@ -81,7 +81,7 @@ describe("ensureAgentsMdImport", () => {
 
 describe("removeAgentsMdImport", () => {
   for (const fence of ["```", "~~~~"]) {
-    test(`preserves ${fence} fenced examples through install and removal`, async () => {
+    test(`PACK-14: preserves ${fence} fenced examples through install and removal`, async () => {
       await withRoot(async (root, file) => {
         const original = `# Notes\n\n${fence}md\n\n@AGENTS.md\n${fence}\n`;
         await fs.writeFile(file, original);
@@ -94,7 +94,7 @@ describe("removeAgentsMdImport", () => {
     });
   }
 
-  test("deletes a CLAUDE.md that held only the import", async () => {
+  test("PACK-13: deletes a CLAUDE.md that held only the import", async () => {
     await withRoot(async (root, file) => {
       await ensureAgentsMdImport(root);
 
@@ -103,7 +103,7 @@ describe("removeAgentsMdImport", () => {
     });
   });
 
-  test("removes only the import line from a CLAUDE.md with other content", async () => {
+  test("PACK-13: removes only the import line from a CLAUDE.md with other content", async () => {
     await withRoot(async (root, file) => {
       await fs.writeFile(file, "# Notes\n\n@AGENTS.md\n\nPrefer small PRs.\n");
 
@@ -112,7 +112,7 @@ describe("removeAgentsMdImport", () => {
     });
   });
 
-  test("leaves an inline mention alone and reports nothing removed", async () => {
+  test("PACK-13: leaves an inline mention alone and reports nothing removed", async () => {
     await withRoot(async (root, file) => {
       const text = "Read @AGENTS.md first.\n";
       await fs.writeFile(file, text);

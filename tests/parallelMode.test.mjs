@@ -42,7 +42,7 @@ const enableSubagent = (root, testCommand = "npm test") =>
   enableSubagentMode(root, subagentBundleDir, testCommand);
 
 describe("enableParallelMode", () => {
-  test("is off until enabled, then writes one block into AGENTS.md and nothing else", async () => {
+  test("MODE-1, MODE-3, MODE-4, MODE-12: is off until enabled, then writes one block into AGENTS.md and nothing else", async () => {
     await withRoot(async (root) => {
       assert.equal(await isParallelModeEnabled(root), false);
 
@@ -62,7 +62,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("falls back to prose when the project's test command is unknown", async () => {
+  test("MODE-3: falls back to prose when the project's test command is unknown", async () => {
     await withRoot(async (root) => {
       await enable(root, null);
       const text = (await readAgentsMd(root)).replace(/\s+/g, " ");
@@ -72,7 +72,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("tells the orchestrator to split, contract, fan out, isolate, verify, cap repairs, and review", async () => {
+  test("MODE-13: tells the orchestrator to split, contract, fan out, isolate, verify, cap repairs, and review", async () => {
     await withRoot(async (root) => {
       await enable(root);
       const text = (await readAgentsMd(root)).replace(/\s+/g, " ");
@@ -93,7 +93,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("caps concurrency, allows falling back, and integrates worktree units one at a time", async () => {
+  test("MODE-13, MODE-14: caps concurrency, allows falling back, and integrates worktree units one at a time", async () => {
     await withRoot(async (root) => {
       await enable(root);
       const text = (await readAgentsMd(root)).replace(/\s+/g, " ");
@@ -108,7 +108,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("carries the implementer, researcher, and reviewer delegate contracts", async () => {
+  test("MODE-14: carries the implementer, researcher, and reviewer delegate contracts", async () => {
     await withRoot(async (root) => {
       await enable(root);
       const text = (await readAgentsMd(root)).replace(/\s+/g, " ");
@@ -126,7 +126,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("re-enabling refreshes the block in place instead of adding a second one", async () => {
+  test("MODE-3: re-enabling refreshes the block in place instead of adding a second one", async () => {
     await withRoot(async (root) => {
       await enable(root, null);
       assert.deepEqual(await enable(root, "cargo test"), { created: false });
@@ -138,7 +138,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("keeps the user's text and stays independent of the rule pack block", async () => {
+  test("MODE-1, MODE-3: keeps the user's text and stays independent of the rule pack block", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(path.join(root, "AGENTS.md"), "# Mine\n\nHouse rules.\n");
       await enable(root);
@@ -159,7 +159,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("refuses damaged block markers without rewriting the file", async () => {
+  test("MODE-5: refuses damaged block markers without rewriting the file", async () => {
     await withRoot(async (root) => {
       const damaged = `# Mine\n\n${PARALLEL_MODE_MARKERS.start}\n\nhalf a block\n`;
       await fs.writeFile(path.join(root, "AGENTS.md"), damaged);
@@ -171,7 +171,7 @@ describe("enableParallelMode", () => {
     });
   });
 
-  test("reports a bundle it cannot read or fully render before writing", async () => {
+  test("MODE-3: reports a bundle it cannot read or fully render before writing", async () => {
     await withRoot(async (root) => {
       const brokenBundle = path.join(root, "bundle");
       await fs.cp(parallelBundleDir, brokenBundle, { recursive: true });
@@ -194,7 +194,7 @@ describe("enableParallelMode", () => {
 });
 
 describe("disableParallelMode", () => {
-  test("deletes an AGENTS.md that held nothing but the mode", async () => {
+  test("MODE-5: deletes an AGENTS.md that held nothing but the mode", async () => {
     await withRoot(async (root) => {
       await enable(root);
 
@@ -203,7 +203,7 @@ describe("disableParallelMode", () => {
     });
   });
 
-  test("reports nothing to do where the mode was never enabled", async () => {
+  test("MODE-5: reports nothing to do where the mode was never enabled", async () => {
     await withRoot(async (root) => {
       assert.deepEqual(await disableParallelMode(root), { removed: false, deletedFile: false });
       await fs.writeFile(path.join(root, "AGENTS.md"), "# Mine\n");
@@ -214,7 +214,7 @@ describe("disableParallelMode", () => {
 });
 
 describe("mutual exclusion with token-efficient subagent mode", () => {
-  test("parallel mode cannot be enabled while subagent mode is on, and the file is untouched", async () => {
+  test("MODE-7: parallel mode cannot be enabled while subagent mode is on, and the file is untouched", async () => {
     await withRoot(async (root) => {
       await enableSubagent(root);
       const before = await fs.readFile(path.join(root, "AGENTS.md"));
@@ -230,7 +230,7 @@ describe("mutual exclusion with token-efficient subagent mode", () => {
     });
   });
 
-  test("subagent mode cannot be enabled while parallel mode is on, and the file is untouched", async () => {
+  test("MODE-7: subagent mode cannot be enabled while parallel mode is on, and the file is untouched", async () => {
     await withRoot(async (root) => {
       await enable(root);
       const before = await fs.readFile(path.join(root, "AGENTS.md"));
@@ -246,7 +246,7 @@ describe("mutual exclusion with token-efficient subagent mode", () => {
     });
   });
 
-  test("the message names the command that turns the other mode off", async () => {
+  test("MODE-7: the message names the command that turns the other mode off", async () => {
     await withRoot(async (root) => {
       await enableSubagent(root);
 
@@ -254,7 +254,7 @@ describe("mutual exclusion with token-efficient subagent mode", () => {
     });
   });
 
-  test("enabling succeeds once the other mode is disabled, in both directions", async () => {
+  test("MODE-7: enabling succeeds once the other mode is disabled, in both directions", async () => {
     await withRoot(async (root) => {
       await enableSubagent(root);
       await assert.rejects(enable(root), /can't be enabled while/);
@@ -272,7 +272,7 @@ describe("mutual exclusion with token-efficient subagent mode", () => {
     });
   });
 
-  test("refreshing the mode that is already on is not a conflict", async () => {
+  test("MODE-7: refreshing the mode that is already on is not a conflict", async () => {
     await withRoot(async (root) => {
       await enable(root);
 

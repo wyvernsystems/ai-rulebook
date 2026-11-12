@@ -27,13 +27,13 @@ async function writeExtensionRoot(manifest) {
 }
 
 describe("readBundleManifest (shipped pack)", () => {
-  test("loads the topic-based bundled manifest", () => {
+  test("PACK-1: loads the topic-based bundled manifest", () => {
     const manifest = readBundleManifest(repoRoot);
     assert.equal(manifest.version, 1);
     assert.deepEqual(manifest.files, RULE_FILES);
   });
 
-  test("manifest lists exactly the rule files present in the bundle", async () => {
+  test("BUNDLE-2: manifest lists exactly the rule files present in the bundle", async () => {
     // bundled/ai-rules is the tracked source of truth, so a rule added or
     // removed without regenerating the manifest must fail the suite, not just
     // `npm run verify:bundled`.
@@ -71,7 +71,7 @@ describe("readBundleManifest (shipped pack)", () => {
     }
   });
 
-  test("review.mdc applies only on request, keeps licensing report-only, and never force-pushes", async () => {
+  test("PACK-15: review.mdc applies only on request, keeps licensing report-only, and never force-pushes", async () => {
     const rule = await fs.readFile(
       path.join(repoRoot, "bundled", "ai-rules", "review.mdc"),
       "utf8"
@@ -83,7 +83,7 @@ describe("readBundleManifest (shipped pack)", () => {
     assert.match(lastBullet, /never force-push/);
   });
 
-  test("ships no placeholder that install-time rendering does not resolve", async () => {
+  test("BUNDLE-2: ships no placeholder that install-time rendering does not resolve", async () => {
     const { TEST_COMMAND_PLACEHOLDER, renderRuleBody } = await import(
       "../out/testCommand.js"
     );
@@ -104,7 +104,7 @@ describe("readBundleManifest (shipped pack)", () => {
 });
 
 describe("readBundleManifest validation", () => {
-  test("rejects invalid JSON", async () => {
+  test("BUNDLE-5: rejects invalid JSON", async () => {
     const dir = await writeExtensionRoot("{not json");
     try {
       assert.throws(() => readBundleManifest(dir), (error) => {
@@ -117,7 +117,7 @@ describe("readBundleManifest validation", () => {
     }
   });
 
-  test("rejects a non-object root", async () => {
+  test("BUNDLE-5: rejects a non-object root", async () => {
     const dir = await writeExtensionRoot("null");
     try {
       assert.throws(() => readBundleManifest(dir), /Manifest is not an object/);
@@ -126,7 +126,7 @@ describe("readBundleManifest validation", () => {
     }
   });
 
-  test("rejects missing or non-positive version", async () => {
+  test("BUNDLE-5: rejects missing or non-positive version", async () => {
     const dir = await writeExtensionRoot(JSON.stringify({ files: [] }));
     try {
       assert.throws(() => readBundleManifest(dir), /invalid `version`/);
@@ -135,7 +135,7 @@ describe("readBundleManifest validation", () => {
     }
   });
 
-  test("rejects a non-array files field", async () => {
+  test("BUNDLE-5: rejects a non-array files field", async () => {
     const dir = await writeExtensionRoot(JSON.stringify({ version: 1, files: "nope" }));
     try {
       assert.throws(() => readBundleManifest(dir), /`files` is not an array/);
@@ -144,7 +144,7 @@ describe("readBundleManifest validation", () => {
     }
   });
 
-  test("rejects a traversal entry", async () => {
+  test("BUNDLE-5: rejects a traversal entry", async () => {
     const dir = await writeExtensionRoot(
       JSON.stringify({ version: 1, files: ["core.mdc", "../escape.mdc"] })
     );
@@ -155,7 +155,7 @@ describe("readBundleManifest validation", () => {
     }
   });
 
-  test("accepts a minimal valid manifest", async () => {
+  test("BUNDLE-5: accepts a minimal valid manifest", async () => {
     const dir = await writeExtensionRoot(
       JSON.stringify({ version: 1, files: ["core.mdc"] })
     );

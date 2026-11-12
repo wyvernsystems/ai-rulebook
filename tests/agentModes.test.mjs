@@ -51,27 +51,27 @@ const bothBlocks = (modes = [SUBAGENT_MODE, PARALLEL_MODE]) =>
   modes.map((m) => `${m.markers.start}\n\nbody of ${m.id}\n\n${m.markers.end}\n`).join("\n");
 
 describe("activeAgentModes", () => {
-  test("is empty without an AGENTS.md", async () => {
+  test("MODE-6: is empty without an AGENTS.md", async () => {
     await withRoot(async (root) => {
       assert.deepEqual(await activeAgentModes(root), []);
     });
   });
 
-  test("lists the subagent mode once it is enabled", async () => {
+  test("MODE-6: lists the subagent mode once it is enabled", async () => {
     await withRoot(async (root) => {
       await enableAgentMode(root, SUBAGENT_MODE, bundles.subagent, "npm test");
       assert.deepEqual(ids(await activeAgentModes(root)), ["subagent"]);
     });
   });
 
-  test("lists both modes when a hand-edited file holds both blocks", async () => {
+  test("MODE-6: lists both modes when a hand-edited file holds both blocks", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(agentsPath(root), bothBlocks());
       assert.deepEqual(ids(await activeAgentModes(root)), ["subagent", "parallel"]);
     });
   });
 
-  test("throws on damaged markers", async () => {
+  test("MODE-5: throws on damaged markers", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(agentsPath(root), `# Mine\n\n${PARALLEL_MODE.markers.start}\n\nhalf\n`);
       await assert.rejects(activeAgentModes(root), /damaged ai-rulebook:parallel-mode markers/);
@@ -80,7 +80,7 @@ describe("activeAgentModes", () => {
 });
 
 describe("switchAgentMode to a mode", () => {
-  test("replaces the other mode's block and keeps user text and the rule pack", async () => {
+  test("MODE-8: replaces the other mode's block and keeps user text and the rule pack", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(agentsPath(root), "# Mine\n\nHouse rules.\n");
       await enableAgentMode(root, SUBAGENT_MODE, bundles.subagent, "npm test");
@@ -103,7 +103,7 @@ describe("switchAgentMode to a mode", () => {
     });
   });
 
-  test("works in the other direction", async () => {
+  test("MODE-8: works in the other direction", async () => {
     await withRoot(async (root) => {
       await enableAgentMode(root, PARALLEL_MODE, bundles.parallel, "npm test");
 
@@ -114,7 +114,7 @@ describe("switchAgentMode to a mode", () => {
     });
   });
 
-  test("leaves one block when the file held both", async () => {
+  test("MODE-8: leaves one block when the file held both", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(agentsPath(root), bothBlocks());
 
@@ -130,7 +130,7 @@ describe("switchAgentMode to a mode", () => {
     });
   });
 
-  test("reports created when AGENTS.md did not exist", async () => {
+  test("MODE-8: reports created when AGENTS.md did not exist", async () => {
     await withRoot(async (root) => {
       const result = await switchAgentMode(root, target(PARALLEL_MODE));
 
@@ -139,7 +139,7 @@ describe("switchAgentMode to a mode", () => {
     });
   });
 
-  test("refreshes in place when the target is already on", async () => {
+  test("MODE-8: refreshes in place when the target is already on", async () => {
     await withRoot(async (root) => {
       await enableAgentMode(root, PARALLEL_MODE, bundles.parallel, null);
 
@@ -155,7 +155,7 @@ describe("switchAgentMode to a mode", () => {
 });
 
 describe("switchAgentMode to null", () => {
-  test("removes every mode block and deletes a file that held nothing else", async () => {
+  test("MODE-8: removes every mode block and deletes a file that held nothing else", async () => {
     await withRoot(async (root) => {
       await enableAgentMode(root, SUBAGENT_MODE, bundles.subagent, "npm test");
 
@@ -167,7 +167,7 @@ describe("switchAgentMode to null", () => {
     });
   });
 
-  test("keeps the file when user text remains", async () => {
+  test("MODE-8: keeps the file when user text remains", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(agentsPath(root), bothBlocks());
 
@@ -182,7 +182,7 @@ describe("switchAgentMode to null", () => {
     });
   });
 
-  test("does nothing, and creates no file, when no mode is on", async () => {
+  test("MODE-8: does nothing, and creates no file, when no mode is on", async () => {
     await withRoot(async (root) => {
       assert.deepEqual(await switchAgentMode(root, null), {
         removed: [],
@@ -209,7 +209,7 @@ describe("switchAgentMode failures leave AGENTS.md untouched", () => {
       ["to the parallel mode", () => target(PARALLEL_MODE)],
       ["to off", () => null],
     ]) {
-      test(`damaged ${damagedMode.id} markers reject a switch ${label}`, async () => {
+      test(`MODE-5, MODE-8: damaged ${damagedMode.id} markers reject a switch ${label}`, async () => {
         await withRoot(async (root) => {
           const damaged = `# Mine\n\n${damagedMode.markers.start}\n\nhalf a block\n`;
           await fs.writeFile(agentsPath(root), damaged);
@@ -223,7 +223,7 @@ describe("switchAgentMode failures leave AGENTS.md untouched", () => {
     }
   }
 
-  test("an unreadable bundle dir rejects before any write", async () => {
+  test("MODE-8: an unreadable bundle dir rejects before any write", async () => {
     await withRoot(async (root) => {
       await enableAgentMode(root, SUBAGENT_MODE, bundles.subagent, "npm test");
       const before = await fs.readFile(agentsPath(root));
@@ -241,7 +241,7 @@ describe("switchAgentMode failures leave AGENTS.md untouched", () => {
     });
   });
 
-  test("an unreadable bundle dir creates no file", async () => {
+  test("MODE-8: an unreadable bundle dir creates no file", async () => {
     await withRoot(async (root) => {
       await assert.rejects(switchAgentMode(root, target(SUBAGENT_MODE, path.join(root, "missing"))));
       assert.equal(await exists(agentsPath(root)), false);

@@ -34,7 +34,7 @@ const readAgentsMd = (root) => fs.readFile(path.join(root, "AGENTS.md"), "utf8")
 const enable = (root, testCommand = "npm test") => enableSubagentMode(root, modeBundleDir, testCommand);
 
 describe("enableSubagentMode", () => {
-  test("is off until enabled, then writes one block into AGENTS.md and nothing else", async () => {
+  test("MODE-1, MODE-3, MODE-4, MODE-10: is off until enabled, then writes one block into AGENTS.md and nothing else", async () => {
     await withRoot(async (root) => {
       assert.equal(await isSubagentModeEnabled(root), false);
 
@@ -52,7 +52,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("falls back to prose when the project's test command is unknown", async () => {
+  test("MODE-3: falls back to prose when the project's test command is unknown", async () => {
     await withRoot(async (root) => {
       await enable(root, null);
 
@@ -60,7 +60,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("works for any tool: model tiers, substitutes, and delegate contracts live in the text", async () => {
+  test("MODE-11: works for any tool: model tiers, substitutes, and delegate contracts live in the text", async () => {
     await withRoot(async (root) => {
       await enable(root);
       const text = await readAgentsMd(root);
@@ -81,7 +81,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("limits retries and says when to review, so failures do not become delegate loops", async () => {
+  test("MODE-11: limits retries and says when to review, so failures do not become delegate loops", async () => {
     await withRoot(async (root) => {
       await enable(root);
       const text = (await readAgentsMd(root)).replace(/\s+/g, " ");
@@ -95,7 +95,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("re-enabling refreshes the block in place instead of adding a second one", async () => {
+  test("MODE-3: re-enabling refreshes the block in place instead of adding a second one", async () => {
     await withRoot(async (root) => {
       await enable(root, null);
       assert.deepEqual(await enable(root, "cargo test"), { created: false });
@@ -106,7 +106,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("keeps the user's text and stays independent of the rule pack block", async () => {
+  test("MODE-1, MODE-3: keeps the user's text and stays independent of the rule pack block", async () => {
     await withRoot(async (root) => {
       await fs.writeFile(path.join(root, "AGENTS.md"), "# Mine\n\nHouse rules.\n");
       await enable(root);
@@ -127,7 +127,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("refuses damaged block markers without rewriting the file", async () => {
+  test("MODE-5: refuses damaged block markers without rewriting the file", async () => {
     await withRoot(async (root) => {
       const damaged = `# Mine\n\n${SUBAGENT_MODE_MARKERS.start}\n\nhalf a block\n`;
       await fs.writeFile(path.join(root, "AGENTS.md"), damaged);
@@ -139,7 +139,7 @@ describe("enableSubagentMode", () => {
     });
   });
 
-  test("reports a bundle it cannot read or fully render before writing", async () => {
+  test("MODE-3: reports a bundle it cannot read or fully render before writing", async () => {
     await withRoot(async (root) => {
       const brokenBundle = path.join(root, "bundle");
       await fs.cp(modeBundleDir, brokenBundle, { recursive: true });
@@ -162,7 +162,7 @@ describe("enableSubagentMode", () => {
 });
 
 describe("disableSubagentMode", () => {
-  test("deletes an AGENTS.md that held nothing but the mode", async () => {
+  test("MODE-5: deletes an AGENTS.md that held nothing but the mode", async () => {
     await withRoot(async (root) => {
       await enable(root);
 
@@ -171,7 +171,7 @@ describe("disableSubagentMode", () => {
     });
   });
 
-  test("reports nothing to do where the mode was never enabled", async () => {
+  test("MODE-5: reports nothing to do where the mode was never enabled", async () => {
     await withRoot(async (root) => {
       assert.deepEqual(await disableSubagentMode(root), { removed: false, deletedFile: false });
       await fs.writeFile(path.join(root, "AGENTS.md"), "# Mine\n");

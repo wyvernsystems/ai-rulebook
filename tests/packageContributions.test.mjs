@@ -20,7 +20,7 @@ describe("VS Code package contributions", () => {
     assert.equal(new Set(commandIds).size, commandIds.length);
   });
 
-  test("contributes individual and whole-pack enable and disable commands", () => {
+  test("UI-5: contributes individual and whole-pack enable and disable commands", () => {
     const commandIds = new Set(
       contributions.commands.map((command) => command.command)
     );
@@ -35,7 +35,7 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("contributes install, remove, legacy-cleanup, and status commands", () => {
+  test("PACK-1, PACK-13, LEGACY-1, UI-8: contributes install, remove, legacy-cleanup, and status commands", () => {
     const commandIds = new Set(
       contributions.commands.map((command) => command.command)
     );
@@ -52,7 +52,7 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("contributes paired subagent mode commands to the palette only", () => {
+  test("MODE-9: contributes paired subagent mode commands to the palette only", () => {
     const commandIds = new Set(contributions.commands.map((command) => command.command));
     const menuCommands = new Set(contributions.menus["view/title"].map((item) => item.command));
 
@@ -62,7 +62,7 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("contributes paired parallel mode commands to the palette only", () => {
+  test("MODE-9: contributes paired parallel mode commands to the palette only", () => {
     const commandIds = new Set(contributions.commands.map((command) => command.command));
     const menuCommands = new Set(contributions.menus["view/title"].map((item) => item.command));
 
@@ -72,7 +72,7 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("contributes the select agent mode command to the palette and the sidebar menu", () => {
+  test("MODE-8, MODE-9: contributes the select agent mode command to the palette and the sidebar menu", () => {
     const command = contributions.commands.find(
       (item) => item.command === "aiRules.selectAgentMode"
     );
@@ -87,7 +87,7 @@ describe("VS Code package contributions", () => {
     assert.equal(menuItem.group, "3_modes@1");
   });
 
-  test("sidebar toolbar menus are not gated by host application", () => {
+  test("UI-9: sidebar toolbar menus are not gated by host application", () => {
     for (const item of contributions.menus["view/title"]) {
       const when = item.when ?? "";
       assert.ok(!/cursor|vscode|isCursor|isVscode/i.test(when), `unexpected host gate: ${JSON.stringify(item)}`);
@@ -155,7 +155,7 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("the rule-reveal command is hidden from the command palette", () => {
+  test("UI-2: the rule-reveal command is hidden from the command palette", () => {
     const paletteEntries = contributions.menus.commandPalette ?? [];
     const hidden = paletteEntries.find((item) => item.command === "aiRules.revealRuleFile");
 
@@ -179,7 +179,7 @@ describe("VS Code package contributions", () => {
     }
   });
 
-  test("disabled rule color defaults to red in every theme", () => {
+  test("UI-1: disabled rule color defaults to red in every theme", () => {
     const inactive = contributions.colors.find(
       (color) => color.id === "aiRulebook.inactiveForeground"
     );

@@ -76,7 +76,7 @@ describe("ruleId", () => {
 });
 
 describe("renderRuleForAgentsMd", () => {
-  test("strips Cursor frontmatter, renders the test command, and demotes headings", () => {
+  test("PACK-4: strips Cursor frontmatter, renders the test command, and demotes headings", () => {
     assert.equal(
       renderRuleForAgentsMd(BUNDLE["tests.mdc"], "npm test"),
       "## Tests\n\n- Run `npm test`."
@@ -87,7 +87,7 @@ describe("renderRuleForAgentsMd", () => {
     );
   });
 
-  test("demotes every heading level but never past h6, and leaves fenced code alone", () => {
+  test("PACK-4: demotes every heading level but never past h6, and leaves fenced code alone", () => {
     const body = "# One\n\n###### Six\n\n```md\n# not a heading\n```\n\ntext\n";
     assert.equal(
       renderRuleForAgentsMd(body, null),
@@ -95,13 +95,13 @@ describe("renderRuleForAgentsMd", () => {
     );
   });
 
-  test("keeps a body with no frontmatter as-is apart from demotion", () => {
+  test("PACK-4: keeps a body with no frontmatter as-is apart from demotion", () => {
     assert.equal(renderRuleForAgentsMd("# Scope\n\n- x\n", null), "## Scope\n\n- x");
   });
 });
 
 describe("installRulesIntoAgentsMd", () => {
-  test("creates AGENTS.md with a title and one enabled section per rule", async () => {
+  test("PACK-1, PACK-2, PACK-3: creates AGENTS.md with a title and one enabled section per rule", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       const result = await installRulesIntoAgentsMd(root, bundle, RULE_FILES, "npm test");
 
@@ -125,7 +125,7 @@ describe("installRulesIntoAgentsMd", () => {
     });
   });
 
-  test("appends the block to an existing AGENTS.md without touching its content", async () => {
+  test("PACK-3: appends the block to an existing AGENTS.md without touching its content", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       const existing = "# My project\n\nRun `make build` first.";
       await writeFile(file, existing);
@@ -140,7 +140,7 @@ describe("installRulesIntoAgentsMd", () => {
     });
   });
 
-  test("replaces an existing block in place, preserving text before and after it", async () => {
+  test("PACK-2, PACK-3: replaces an existing block in place, preserving text before and after it", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, "npm test");
       const installed = await fs.readFile(file, "utf8");
@@ -157,7 +157,7 @@ describe("installRulesIntoAgentsMd", () => {
     });
   });
 
-  test("keeps a disabled rule disabled on reinstall and adds rules missing from the block", async () => {
+  test("PACK-8: keeps a disabled rule disabled on reinstall and adds rules missing from the block", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, ["code.mdc", "tests.mdc"], null);
       await setRuleEnabledInAgentsMd(root, bundle, "code.mdc", false, null);
@@ -173,7 +173,7 @@ describe("installRulesIntoAgentsMd", () => {
     });
   });
 
-  test("enableAll re-enables every rule and drops sections for rules no longer bundled", async () => {
+  test("PACK-8: enableAll re-enables every rule and drops sections for rules no longer bundled", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
       await setRuleEnabledInAgentsMd(root, bundle, "code.mdc", false, null);
@@ -189,7 +189,7 @@ describe("installRulesIntoAgentsMd", () => {
     });
   });
 
-  test("refuses unsafe rule paths and reports a missing bundled rule", async () => {
+  test("BUNDLE-6: refuses unsafe rule paths and reports a missing bundled rule", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await assert.rejects(
         installRulesIntoAgentsMd(root, bundle, ["../escape.mdc"], null),
@@ -203,7 +203,7 @@ describe("installRulesIntoAgentsMd", () => {
     });
   });
 
-  test("reports a damaged block instead of rewriting the file", async () => {
+  test("PACK-11: reports a damaged block instead of rewriting the file", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       const damaged = "# Title\n\n" + AGENTS_MD_BLOCK_START + "\n\nno end marker\n";
       await writeFile(file, damaged);
@@ -223,7 +223,7 @@ describe("parseAgentsMd", () => {
     assert.equal(parseAgentsMd(""), null);
   });
 
-  test("splits the text around the block and reads every section's state and body", () => {
+  test("PACK-2: splits the text around the block and reads every section's state and body", () => {
     const text =
       "intro\n\n" +
       AGENTS_MD_BLOCK_START +
@@ -253,12 +253,12 @@ describe("parseAgentsMd", () => {
     assert.equal(parsed.rules[0].enabled, true);
   });
 
-  test("rejects a start marker without an end marker, and the reverse", () => {
+  test("PACK-11: rejects a start marker without an end marker, and the reverse", () => {
     assert.throws(() => parseAgentsMd(AGENTS_MD_BLOCK_START + "\nx\n"), /ai-rulebook:end/);
     assert.throws(() => parseAgentsMd("x\n" + AGENTS_MD_BLOCK_END + "\n"), /ai-rulebook:start/);
   });
 
-  test("rejects a second block, an unterminated section, and a duplicate section", () => {
+  test("PACK-11: rejects a second block, an unterminated section, and a duplicate section", () => {
     const one = section("code", "## Code");
     assert.throws(
       () =>
@@ -310,7 +310,7 @@ describe("rule state in AGENTS.md", () => {
 });
 
 describe("setRuleEnabledInAgentsMd", () => {
-  test("disabling removes only that rule's text and marks its section disabled", async () => {
+  test("PACK-6: disabling removes only that rule's text and marks its section disabled", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, "npm test");
       await writeFile(file, "# Mine\n\nkeep me\n\n" + (await fs.readFile(file, "utf8")).slice("# AGENTS.md\n\n".length) + "\ntrailer\n");
@@ -329,7 +329,7 @@ describe("setRuleEnabledInAgentsMd", () => {
     });
   });
 
-  test("enabling restores the rule text from the bundle with the current test command", async () => {
+  test("PACK-6: enabling restores the rule text from the bundle with the current test command", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, "npm test");
       await setRuleEnabledInAgentsMd(root, bundle, "tests.mdc", false, "npm test");
@@ -342,7 +342,7 @@ describe("setRuleEnabledInAgentsMd", () => {
     });
   });
 
-  test("is idempotent and keeps section order", async () => {
+  test("PACK-6: is idempotent and keeps section order", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
       const before = await fs.readFile(file, "utf8");
@@ -356,7 +356,7 @@ describe("setRuleEnabledInAgentsMd", () => {
     });
   });
 
-  test("adds a section for a rule the block does not list yet", async () => {
+  test("PACK-6: adds a section for a rule the block does not list yet", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, ["code.mdc"], null);
 
@@ -371,7 +371,7 @@ describe("setRuleEnabledInAgentsMd", () => {
     });
   });
 
-  test("fails clearly when the rule pack is not installed", async () => {
+  test("PACK-12: fails clearly when the rule pack is not installed", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await assert.rejects(
         setRuleEnabledInAgentsMd(root, bundle, "code.mdc", false, null),
@@ -386,7 +386,7 @@ describe("setRuleEnabledInAgentsMd", () => {
     });
   });
 
-  test("setAllRulesEnabledInAgentsMd flips every rule at once", async () => {
+  test("PACK-6: setAllRulesEnabledInAgentsMd flips every rule at once", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
 
@@ -407,7 +407,7 @@ describe("setRuleEnabledInAgentsMd", () => {
 });
 
 describe("concurrent AGENTS.md changes", () => {
-  test("keeps every concurrent toggle and preserves surrounding user text", async () => {
+  test("PACK-7: keeps every concurrent toggle and preserves surrounding user text", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await writeFile(file, "# Project\n\nKeep this.\n");
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
@@ -422,7 +422,7 @@ describe("concurrent AGENTS.md changes", () => {
     });
   });
 
-  test("applies install, toggle, and refresh in invocation order", async () => {
+  test("PACK-7: applies install, toggle, and refresh in invocation order", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await Promise.all([
         installRulesIntoAgentsMd(root, bundle, RULE_FILES, null),
@@ -435,7 +435,7 @@ describe("concurrent AGENTS.md changes", () => {
     });
   });
 
-  test("removal waits for an earlier install", async () => {
+  test("PACK-7: removal waits for an earlier install", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       const [, removed] = await Promise.all([
         installRulesIntoAgentsMd(root, bundle, RULE_FILES, null),
@@ -446,7 +446,7 @@ describe("concurrent AGENTS.md changes", () => {
     });
   });
 
-  test("reports a failed mutation and still runs the next queued mutation", async () => {
+  test("PACK-7: reports a failed mutation and still runs the next queued mutation", async () => {
     await withFixture(async ({ bundle, root }) => {
       const results = await Promise.allSettled([
         installRulesIntoAgentsMd(root, bundle, ["missing.mdc"], null),
@@ -465,7 +465,7 @@ describe("concurrent AGENTS.md changes", () => {
 });
 
 describe("removeRulesBlockFromAgentsMd", () => {
-  test("deletes a file the extension created", async () => {
+  test("PACK-13: deletes a file the extension created", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
 
@@ -477,7 +477,7 @@ describe("removeRulesBlockFromAgentsMd", () => {
     });
   });
 
-  test("keeps the user's own content and drops only the block", async () => {
+  test("PACK-13: keeps the user's own content and drops only the block", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await writeFile(file, "# Project\n\nUse tabs.\n");
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
@@ -491,7 +491,7 @@ describe("removeRulesBlockFromAgentsMd", () => {
     });
   });
 
-  test("is a no-op without a file or a block", async () => {
+  test("PACK-13: is a no-op without a file or a block", async () => {
     await withFixture(async ({ root, file }) => {
       assert.deepEqual(await removeRulesBlockFromAgentsMd(root), {
         removed: false,
@@ -508,7 +508,7 @@ describe("removeRulesBlockFromAgentsMd", () => {
 });
 
 describe("ruleSectionLine", () => {
-  test("returns the zero-based line of the rule's start marker, or null", async () => {
+  test("UI-2: returns the zero-based line of the rule's start marker, or null", async () => {
     await withFixture(async ({ bundle, root, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
       const text = await fs.readFile(file, "utf8");
@@ -523,7 +523,7 @@ describe("ruleSectionLine", () => {
 });
 
 describe("rule file error handling", () => {
-  test("rejects reversed and mismatched markers", () => {
+  test("PACK-11: rejects reversed and mismatched markers", () => {
     assert.throws(() => parseAgentsMd(`${AGENTS_MD_BLOCK_END}\n${AGENTS_MD_BLOCK_START}\n`), /before/);
     for (const body of [
       ruleEndMarker("code"),
@@ -553,7 +553,7 @@ describe("rule file error handling", () => {
     });
   });
 
-  test("reads every bundled rule before overwriting installed rules", async () => {
+  test("BUNDLE-6: reads every bundled rule before overwriting installed rules", async () => {
     await withFixture(async ({ root, bundle, file }) => {
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
       const original = await fs.readFile(file, "utf8");
@@ -564,7 +564,7 @@ describe("rule file error handling", () => {
     });
   });
 
-  test("installs into an empty file without adding a title", async () => {
+  test("PACK-3: installs into an empty file without adding a title", async () => {
     await withFixture(async ({ root, bundle, file }) => {
       await fs.writeFile(file, " \n\t");
       await installRulesIntoAgentsMd(root, bundle, RULE_FILES, null);
