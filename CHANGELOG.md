@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-11-12
+
 ### Changed
 
 - The Tests rule (`tests.mdc`) no longer has agents rebuild and run the
