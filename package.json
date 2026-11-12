@@ -266,12 +266,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^20.11.0",
-    "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.2.0",
+    "@types/node": "^20.19.43",
+    "@types/vscode": "~1.85.0",
+    "@vscode/vsce": "^4.1.0",
     "eslint": "^10.10.0",
-    "ovsx": "^1.1.1",
-    "typescript": "^5.4.0",
+    "ovsx": "^1.4.0",
+    "typescript": "~6.0.3",
     "typescript-eslint": "^8.70.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.8"
   }
 }

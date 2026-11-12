@@ -10,7 +10,8 @@ document is the checklist.
 
 - Node.js 24 for linting and packaging. The extension declares
   `engines.node: >=18.18.0` and CI tests Node 18/20, but development tooling
-  requires a newer runtime. CI runs ESLint separately on Node 24.
+  requires a newer runtime (`@vscode/vsce` and `ovsx` need Node 22+). CI
+  runs ESLint separately on Node 24.
 - A clean working tree on `main`, up to date with `origin/main`.
 - [GitHub CLI](https://cli.github.com/) authenticated against the
   repository with an account allowed to publish releases: `gh auth status`.

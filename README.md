@@ -416,8 +416,22 @@ are no longer written or updated. After installing this version:
 ## Development
 
 Use Node.js 24 for development, linting, and packaging. ESLint requires
-Node.js 20.19+, 22.13+, or 24+. The extension still declares Node.js
-`>=18.18.0`; CI tests Node 18 and 20 and runs lint on Node 24.
+Node.js 20.19+, 22.13+, or 24+, and `@vscode/vsce` 4 and `ovsx` 1.4 require
+Node.js 22+. The extension still declares Node.js `>=18.18.0`; CI tests
+Node 18 and 20 and runs lint on Node 24.
+
+Dev dependencies deliberately held back from the newest release:
+
+| Package | Held at | Why | Lift when |
+| --- | --- | --- | --- |
+| `typescript` | `~6.0.3` | `typescript-eslint` supports `<6.1.0`; TypeScript 7 breaks linting | `typescript-eslint` supports 7 |
+| `@types/vscode` | `~1.85.0` | Matches `engines.vscode`, so compiling rejects APIs newer than the oldest supported host | `engines.vscode` is raised (bump both together) |
+| `@types/node` | `^20` | Newer majors type APIs that CI's Node 18/20 lack | The Node test matrix moves up |
+
+`overrides.minimatch` in `package.json` forces minimatch 11 under ESLint,
+`typescript-eslint`, and `vsce`, which still ask for 10.x
+([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)).
+Remove it once they depend on 11.
 
 ```bash
 npm ci
