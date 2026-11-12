@@ -10,6 +10,9 @@ alwaysApply: true
 - For a behavior change, add or update a test at the level that exercises the requirement. Test observable behavior, not implementation details.
 - For a bug fix, first reproduce the failure with a regression test when feasible.
 - Put tests where the project already does, named the same way. Without a convention, colocate them using the ecosystem's suffix (`foo.test.ts`, `foo_test.go`).
-- After a behavior change, run {{TEST_COMMAND}}. Before reporting done, run the existing lint and type checks and fix what you introduced.
+- While iterating, build and test only the changed code and its dependents, reusing incremental builds, caches, and test filters (`cargo test -p <crate>`, `flutter test <path>`, `vitest related <files>`). Clean caches only when you suspect one is stale.
+- Run the full suite, {{TEST_COMMAND}}, when the change touches shared code, public interfaces, build or dependency config, or generated code, when its reach is unclear, or when the suite is fast anyway.
+- Before a release, deploy, or publish, or when asked, run {{TEST_COMMAND}} plus the full lint and type checks.
+- Before reporting done, run the existing lint and type checks, scoped likewise where the tool allows, and fix what you introduced. Under **Checks**, name the scope you ran; never present a scoped run as the full suite.
 - If no linter is configured, recommend one that suits the project and say why. Add it only when asked or approved.
 - Before reporting done, read the final diff for unintended changes, debug code, secrets, and missing generated files.

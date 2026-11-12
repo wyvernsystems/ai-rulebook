@@ -54,9 +54,10 @@ This mode spends more tokens than working alone to finish sooner.
 - Check the combined change against the contract: mismatched names,
   signatures, or imports, duplicated helpers, and conflicting assumptions
   between units.
-- Run the full check once on the combined result: {{TEST_COMMAND}}, plus
-  the project's lint and type checks. Passing unit checks do not prove the
-  whole passes.
+- Run the checks once on the combined result, covering every unit's
+  changes and the code that depends on them (the full suite,
+  {{TEST_COMMAND}}, when the Tests rule calls for it), plus the project's
+  lint and type checks. Passing unit checks do not prove the whole passes.
 - Fix integration failures yourself; you hold the whole picture. Allow at
   most two repair rounds, then stop and report what still fails and why.
 - When a unit's own work is wrong, fix it yourself or rewrite its spec and

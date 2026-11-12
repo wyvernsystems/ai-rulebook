@@ -5,12 +5,13 @@ alwaysApply: true
 
 # Scope
 
-- Change what the task requires plus the defect fixes below. No drive-by refactors, renames, reformatting, or version bumps.
+- Change what the task requires plus the refactors and defect fixes below. No other refactors, renames, reformatting, or version bumps.
 - Before editing, read the relevant code, its tests, and the project's commands.
-- Make the smallest complete change, verify it, and keep going until it is done or blocked by something concrete.
+- Make the smallest complete change (the refactors below included), verify it, and keep going until it is done or blocked by something concrete.
 - Decide routine, reversible choices yourself by following project conventions. Ask only when the choice changes behavior, scope, compatibility, or cannot be undone.
 - Tests and docs for your change are part of the task.
+- When code you must change is hard to change or test (long functions, tangled dependencies, logic you would copy, no test seam), refactor it first as a separate step, behavior unchanged and checks passing before and after; pin untested behavior with a test first. Do small refactors within the code the task touches; propose a larger one (beyond those files, public interfaces, module moves, migrations) in a line and continue without it if declined.
 - Follow local naming, formatting, and structure, except where they conflict with safety, correctness, or verification.
-- Fix defects you find while working, even outside the task (bugs, dead code, stale docs, wrong or broken tests), when the fix is small, local, and verified by the project's checks.
-- Report a defect without fixing it when the fix would change a public interface or intended behavior, needs a migration or dependency change, is large, or needs a product decision.
-- End with a report under these headings, omitting empty ones: **Changed**, **Also fixed**, **Checks** (each command run and its result), **Not done** (failing or unrun checks, blockers, defects reported but not fixed).
+- Fix defects you find while working, even outside the task (bugs, dead code, stale docs, wrong or broken tests), when the fix is small, local, and verified by the project's checks. A bug fix restores intended behavior, so fix small bugs rather than report them.
+- Report a defect without fixing it only when the fix would change a public interface or intended behavior, needs a migration or dependency change, is large, or needs a product decision.
+- End with a report under these headings, omitting empty ones: **Changed** (refactors listed separately), **Also fixed**, **Checks** (each command run and its result), **Not done** (failing or unrun checks, blockers, defects reported but not fixed).

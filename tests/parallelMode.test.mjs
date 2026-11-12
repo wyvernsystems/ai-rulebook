@@ -67,7 +67,7 @@ describe("enableParallelMode", () => {
       await enable(root, null);
       const text = (await readAgentsMd(root)).replace(/\s+/g, " ");
 
-      assert.match(text, /Run the full check once on the combined result: the project's test command, plus/);
+      assert.match(text, /\(the full suite, the project's test command, when the Tests rule calls for it\)/);
       assert.doesNotMatch(text, /\{\{/);
     });
   });
@@ -84,7 +84,7 @@ describe("enableParallelMode", () => {
       assert.match(text, /Two units must never edit the same file in the same checkout/);
       assert.match(text, /give each unit its own git worktree/);
       assert.match(text, /isolation: "worktree"/);
-      assert.match(text, /Run the full check once on the combined result: `npm test`/);
+      assert.match(text, /Run the checks once on the combined result, covering every unit.s changes and the code that depends on them \(the full suite, `npm test`, when the Tests rule calls for it\)/);
       assert.match(text, /Passing unit checks do not prove the whole passes/);
       assert.match(text, /Allow at most two repair rounds, then stop and report what still fails and why/);
       assert.match(text, /Never spawn a third delegate for the same unit/);

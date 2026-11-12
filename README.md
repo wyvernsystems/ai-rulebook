@@ -131,7 +131,13 @@ normalize blank lines around the former block.
   and follow conventions without overriding safety or verification. Agents
   also fix small, local, check-verified defects they find along the way
   (bugs, dead code, stale docs, broken tests) and list them under an "Also
-  fixed" heading; larger or behavior-changing ones are only reported.
+  fixed" heading, fixing small bugs rather than reporting them; only
+  larger, interface-changing, or behavior-changing fixes are reported.
+  Before changing code that is hard to change or test, agents refactor it
+  first without changing behavior, with checks passing before and after:
+  small refactors inside the touched code go ahead, larger ones (beyond
+  those files, public interfaces, module moves, migrations) are proposed
+  and wait for your approval.
   Every task ends with a report under fixed headings: Changed, Also fixed,
   Checks, Not done.
 - **`code.mdc`** — reuse helpers, validate input where it enters, protect
@@ -139,15 +145,25 @@ normalize blank lines around the former block.
   dependency maintenance and compatibility.
 - **`tests.mdc`** — never report an unrun check as passing or weaken a check
   to pass, test observable behavior at the appropriate level,
-  reproduce bugs with regression tests when feasible, run project tests and
-  existing lint/type checks, recommend a suitable linter when absent and add
+  reproduce bugs with regression tests when feasible, build and test only
+  the changed code and its dependents (reusing incremental builds and
+  caches) while iterating, widen to the full suite for shared or
+  cross-cutting changes, run the full suite plus lint/type checks before a
+  release or deploy, recommend a suitable linter when absent and add
   it only when requested or approved, and inspect the final diff.
 - **`docs.mdc`** — update documentation made inaccurate by the change,
   follow the project's layout, add user-facing release notes when appropriate,
   and create documentation only when requested or needed to explain changed
   behavior. Documentation is written densely for a reader who acts on it
   (human or agent), with one fact in one place, and agent-instruction files
-  are kept shortest.
+  are kept shortest. A new document goes at the repository root only when a
+  tool reads it there by name (`README.md`, `LICENSE`, `CHANGELOG.md`,
+  `AGENTS.md`, `CLAUDE.md`); new community files go in `.github/` and
+  everything else in the docs folder (`docs/` by default). Existing documents
+  are never moved unless you ask. New requirements get one file per feature
+  in `docs/requirements/`, listed in an index, with stable IDs (`AUTH-1`)
+  that the covering tests name; existing requirements are restructured only
+  when you ask.
 - **`markdown.mdc`** — one H1, no skipped heading levels, `-` bullets,
   language-tagged code fences, inline code for paths and commands, relative
   links.
@@ -269,7 +285,9 @@ agent to follow it:
   or units keep waiting on each other, the agent stops spawning and finishes
   the rest itself.
 - **Integrate and fix.** The orchestrator brings the units together, runs the
-  full test, lint, and type checks on the combined result, and fixes
+  tests covering every unit's changes and their dependents (the full suite
+  when the Tests rule calls for it), plus lint and type checks, on the
+  combined result, and fixes
   integration failures itself, with at most two repair rounds before it
   reports what still fails. Worktree units are merged into the main checkout
   one at a time: it reads each diff, applies it, checks it, resolves

@@ -26,7 +26,9 @@
 - Keep each fact in one place and link to it elsewhere.
 - Keep agent-instruction files (`AGENTS.md`, `CLAUDE.md`, rule files) shortest of all: every line is loaded into every session.
 - Add a release note for user-visible changes in the existing changelog format. Describe behavior; skip internal refactors.
-- Add new documents only when asked or when the change cannot be explained in existing ones. Without an existing layout, put them under `docs/`, linked from `README.md`. Don't introduce a documentation framework unasked.
+- Add new documents only when asked or when the change cannot be explained in existing ones. Don't introduce a documentation framework unasked.
+- Put a new document at the root only if a tool reads it there by name (`README.md`, `LICENSE`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`), new community files (`CONTRIBUTING.md`, `SECURITY.md`) in `.github/`, and the rest in the docs folder (`docs/` if none), linked from `README.md`. Move existing documents only when asked.
+- Write new requirements as `docs/requirements/<feature>.md`, indexed in `docs/requirements/README.md`: purpose, numbered testable requirements with stable IDs (`AUTH-1`), out of scope, and links to code and tests. Name each ID in the tests that cover it. Convert existing requirements to this format only when asked.
 
 <!-- ai-rulebook:end-rule docs -->
 
@@ -81,15 +83,16 @@ Apply this section only when the user explicitly asks for a full or thorough cod
 
 ## Scope
 
-- Change what the task requires plus the defect fixes below. No drive-by refactors, renames, reformatting, or version bumps.
+- Change what the task requires plus the refactors and defect fixes below. No other refactors, renames, reformatting, or version bumps.
 - Before editing, read the relevant code, its tests, and the project's commands.
-- Make the smallest complete change, verify it, and keep going until it is done or blocked by something concrete.
+- Make the smallest complete change (the refactors below included), verify it, and keep going until it is done or blocked by something concrete.
 - Decide routine, reversible choices yourself by following project conventions. Ask only when the choice changes behavior, scope, compatibility, or cannot be undone.
 - Tests and docs for your change are part of the task.
+- When code you must change is hard to change or test (long functions, tangled dependencies, logic you would copy, no test seam), refactor it first as a separate step, behavior unchanged and checks passing before and after; pin untested behavior with a test first. Do small refactors within the code the task touches; propose a larger one (beyond those files, public interfaces, module moves, migrations) in a line and continue without it if declined.
 - Follow local naming, formatting, and structure, except where they conflict with safety, correctness, or verification.
-- Fix defects you find while working, even outside the task (bugs, dead code, stale docs, wrong or broken tests), when the fix is small, local, and verified by the project's checks.
-- Report a defect without fixing it when the fix would change a public interface or intended behavior, needs a migration or dependency change, is large, or needs a product decision.
-- End with a report under these headings, omitting empty ones: **Changed**, **Also fixed**, **Checks** (each command run and its result), **Not done** (failing or unrun checks, blockers, defects reported but not fixed).
+- Fix defects you find while working, even outside the task (bugs, dead code, stale docs, wrong or broken tests), when the fix is small, local, and verified by the project's checks. A bug fix restores intended behavior, so fix small bugs rather than report them.
+- Report a defect without fixing it only when the fix would change a public interface or intended behavior, needs a migration or dependency change, is large, or needs a product decision.
+- End with a report under these headings, omitting empty ones: **Changed** (refactors listed separately), **Also fixed**, **Checks** (each command run and its result), **Not done** (failing or unrun checks, blockers, defects reported but not fixed).
 
 <!-- ai-rulebook:end-rule scope -->
 
@@ -102,7 +105,10 @@ Apply this section only when the user explicitly asks for a full or thorough cod
 - For a behavior change, add or update a test at the level that exercises the requirement. Test observable behavior, not implementation details.
 - For a bug fix, first reproduce the failure with a regression test when feasible.
 - Put tests where the project already does, named the same way. Without a convention, colocate them using the ecosystem's suffix (`foo.test.ts`, `foo_test.go`).
-- After a behavior change, run `npm test`. Before reporting done, run the existing lint and type checks and fix what you introduced.
+- While iterating, build and test only the changed code and its dependents, reusing incremental builds, caches, and test filters (`cargo test -p <crate>`, `flutter test <path>`, `vitest related <files>`). Clean caches only when you suspect one is stale.
+- Run the full suite, `npm test`, when the change touches shared code, public interfaces, build or dependency config, or generated code, when its reach is unclear, or when the suite is fast anyway.
+- Before a release, deploy, or publish, or when asked, run `npm test` plus the full lint and type checks.
+- Before reporting done, run the existing lint and type checks, scoped likewise where the tool allows, and fix what you introduced. Under **Checks**, name the scope you ran; never present a scoped run as the full suite.
 - If no linter is configured, recommend one that suits the project and say why. Add it only when asked or approved.
 - Before reporting done, read the final diff for unintended changes, debug code, secrets, and missing generated files.
 

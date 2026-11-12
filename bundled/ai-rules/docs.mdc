@@ -10,4 +10,6 @@ alwaysApply: true
 - Keep each fact in one place and link to it elsewhere.
 - Keep agent-instruction files (`AGENTS.md`, `CLAUDE.md`, rule files) shortest of all: every line is loaded into every session.
 - Add a release note for user-visible changes in the existing changelog format. Describe behavior; skip internal refactors.
-- Add new documents only when asked or when the change cannot be explained in existing ones. Without an existing layout, put them under `docs/`, linked from `README.md`. Don't introduce a documentation framework unasked.
+- Add new documents only when asked or when the change cannot be explained in existing ones. Don't introduce a documentation framework unasked.
+- Put a new document at the root only if a tool reads it there by name (`README.md`, `LICENSE`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`), new community files (`CONTRIBUTING.md`, `SECURITY.md`) in `.github/`, and the rest in the docs folder (`docs/` if none), linked from `README.md`. Move existing documents only when asked.
+- Write new requirements as `docs/requirements/<feature>.md`, indexed in `docs/requirements/README.md`: purpose, numbered testable requirements with stable IDs (`AUTH-1`), out of scope, and links to code and tests. Name each ID in the tests that cover it. Convert existing requirements to this format only when asked.

@@ -8,6 +8,44 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The Tests rule (`tests.mdc`) no longer has agents rebuild and run the
+  whole suite after every change. While iterating, agents build and test
+  only the changed code and what depends on it, reusing incremental builds,
+  caches, and test filters, and say under **Checks** which scope they ran.
+  They still run the full suite when a change touches shared code, public
+  interfaces, build or dependency config, or generated code, when they
+  cannot tell what it affects, or when the suite is fast anyway, and they
+  always run the full suite plus lint and type checks before a release,
+  deploy, or publish. Run `Install / update rule pack` to pick it up.
+- The Scope rule (`scope.mdc`) lets agents refactor code before changing
+  it when that code is hard to change or test, without changing behavior and
+  with checks passing before and after. Small refactors inside the code the
+  task touches happen without asking; larger ones (beyond those files,
+  public interface changes, module moves, migrations) are proposed first
+  and skipped if you decline. Refactors are listed separately under
+  **Changed**.
+- The Scope rule now tells agents to fix small bugs they find instead of
+  reporting them under **Not done**, since a bug fix restores intended
+  behavior. Only large, interface-changing, or behavior-changing fixes are
+  still reported.
+- The Docs rule (`docs.mdc`) says where a new document goes: the repository
+  root only for files a tool reads there by name (`README.md`, `LICENSE`,
+  `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`), `.github/` for new community
+  files such as `CONTRIBUTING.md` and `SECURITY.md`, and the project's docs
+  folder (`docs/` by default) for everything else. Agents leave existing
+  documents where they are unless you ask them to move them.
+- The Docs rule has agents write new requirements as one file per feature
+  in `docs/requirements/<feature>.md`, listed in
+  `docs/requirements/README.md`, each with its purpose, numbered testable
+  requirements with stable IDs (`AUTH-1`), what is out of scope, and links
+  to the code and tests. Tests name the requirement IDs they cover, so an
+  agent can find the tests for the feature it changed. Existing
+  requirements documents are converted to this format only when you ask.
+- Fast parallel agent mode follows the same scoping: after integrating, the
+  agent tests every unit's changes and their dependents instead of always
+  running the full suite. Re-run `Enable fast parallel agent mode` to
+  refresh the block.
+
 - The extension's homepage link on the VS Marketplace and Open VSX now opens
   its product page,
   [wyvernsystems.com/products/ai-rulebook](https://wyvernsystems.com/products/ai-rulebook/),
